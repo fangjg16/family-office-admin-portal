@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /**
+   * 管理后台：与 platform 工作台相同的浅色语义色（长时间阅读友好）
+   */
+  .admin-app {
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+    --primary: 217 91% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 214 32% 95%;
+    --secondary-foreground: 222 30% 22%;
+    --muted: 210 35% 96%;
+    --muted-foreground: 215 16% 42%;
+    --accent: 210 50% 96%;
+    --accent-foreground: 217 50% 28%;
+    --destructive: 0 72% 46%;
+    --destructive-foreground: 0 0% 99%;
+    --border: 214 24% 88%;
+    --input: 214 24% 90%;
+    --ring: 217 91% 50%;
+    --radius: 0.75rem;
+    color-scheme: light;
+  }
+
+  .admin-app * {
+    @apply border-border;
+  }
+
+  .admin-app {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+
+  .admin-app ::selection {
+    @apply bg-primary/20 text-foreground;
+  }
+}
