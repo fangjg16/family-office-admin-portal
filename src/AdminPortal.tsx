@@ -42,12 +42,22 @@ const navItems: {
 }[] = [
   { id: "overview", label: "概览", icon: LayoutDashboard },
   { id: "accounts", label: "账号与权限", icon: Users },
-  { id: "projects", label: "在管项目", icon: Database },
-  { id: "tokens", label: "Token 用量", icon: Coins },
-  { id: "agents", label: "Agent 管理", icon: Bot },
   { id: "knowledge", label: "知识库管理", icon: BookOpen },
+  { id: "agents", label: "Agent 管理", icon: Bot },
+  { id: "projects", label: "在管项目", icon: Database },
   { id: "conversations", label: "对话监控", icon: MessageSquare },
+  { id: "tokens", label: "Token 用量", icon: Coins },
   { id: "settings", label: "系统设置", icon: Settings },
+];
+
+const navGroups: {
+  label: string;
+  ids: PageId[];
+}[] = [
+  { label: "概览", ids: ["overview"] },
+  { label: "管理", ids: ["accounts", "knowledge", "agents", "projects"] },
+  { label: "监控", ids: ["conversations", "tokens"] },
+  { label: "配置", ids: ["settings"] },
 ];
 
 export default function AdminPortal() {
@@ -114,29 +124,44 @@ export default function AdminPortal() {
           </button>
         </div>
 
-        <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-3">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active = page === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setPage(item.id)}
-                className={cn(
-                  "flex w-full items-center gap-2.5 rounded-full px-2.5 py-2 text-left text-sm font-semibold transition-all",
-                  active
-                    ? "bg-primary/12 text-primary shadow-inner shadow-primary/5"
-                    : "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
-                  !sidebarOpen && "justify-center px-0"
-                )}
-                title={!sidebarOpen ? item.label : undefined}
-              >
-                <Icon size={17} strokeWidth={2} className="shrink-0 opacity-90" />
-                {sidebarOpen && <span className="truncate">{item.label}</span>}
-              </button>
-            );
-          })}
+        <nav className="flex-1 space-y-2 overflow-y-auto px-2 py-3">
+          {navGroups.map((group) => (
+            <div key={group.label} className="space-y-0.5">
+              {sidebarOpen && (
+                <div className="px-2.5 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70">
+                  {group.label}
+                </div>
+              )}
+              {group.ids.map((id) => {
+                const item = navItems.find((n) => n.id === id);
+                if (!item) return null;
+                const Icon = item.icon;
+                const active = page === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setPage(item.id)}
+                    className={cn(
+                      "flex w-full items-center gap-2.5 rounded-full px-2.5 py-2 text-left text-sm font-semibold transition-all",
+                      active
+                        ? "bg-primary/12 text-primary shadow-inner shadow-primary/5"
+                        : "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+                      !sidebarOpen && "justify-center px-0"
+                    )}
+                    title={!sidebarOpen ? item.label : undefined}
+                  >
+                    <Icon
+                      size={17}
+                      strokeWidth={2}
+                      className="shrink-0 opacity-90"
+                    />
+                    {sidebarOpen && <span className="truncate">{item.label}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {sidebarOpen && (

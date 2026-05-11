@@ -263,6 +263,20 @@ export function SettingsPage() {
             <ScrollText className="h-3.5 w-3.5" />
             操作日志
           </button>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border/80 bg-white px-3 py-1.5 text-sm font-medium text-foreground shadow-sm transition hover:bg-muted/60"
+          >
+            <FileText className="h-3.5 w-3.5" />
+            Agent 规则备份
+          </button>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border/80 bg-white px-3 py-1.5 text-sm font-medium text-foreground shadow-sm transition hover:bg-muted/60"
+          >
+            <Download className="h-3.5 w-3.5" />
+            知识库索引
+          </button>
         </div>
         <div>
           <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
