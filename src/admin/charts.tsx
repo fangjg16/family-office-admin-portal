@@ -16,13 +16,21 @@ import {
   YAxis,
 } from "recharts";
 
+/** 合域品牌图表色：酒红 / 深酒红 / 陶土 / 鼠尾草 */
 const CHART_COLORS = [
-  "hsl(217, 91%, 55%)",
-  "hsl(199, 89%, 48%)",
-  "hsl(38, 92%, 50%)",
-  "hsl(0, 72%, 51%)",
-  "hsl(142, 71%, 45%)",
+  "hsl(5, 32%, 46%)",
+  "hsl(353, 32%, 43%)",
+  "hsl(18, 28%, 58%)",
+  "hsl(353, 42%, 32%)",
+  "hsl(145, 18%, 42%)",
 ];
+
+const GRID_STROKE = "hsl(34 16% 88%)";
+const AXIS_LABEL = "hsl(25 10% 45%)";
+const WINE = "hsl(5, 32%, 46%)";
+const WINE_LIGHT = "hsl(5 32% 72%)";
+const TERRACOTTA = "hsl(18, 28%, 58%)";
+const TERRACOTTA_LIGHT = "hsl(18 28% 72%)";
 
 export function TokenAreaChart({
   data,
@@ -39,7 +47,7 @@ export function TokenAreaChart({
         data={data}
         margin={{ left: 0, right: 4, top: 6, bottom: 22 }}
       >
-        <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 24% 90%)" />
+        <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
         <XAxis
           dataKey="date"
           tick={{ fontSize: height >= 200 ? 11 : 9 }}
@@ -55,8 +63,8 @@ export function TokenAreaChart({
           type="monotone"
           dataKey="input"
           stackId="1"
-          fill="hsl(217 91% 70%)"
-          stroke="hsl(217 91% 45%)"
+          fill={WINE_LIGHT}
+          stroke={WINE}
           fillOpacity={0.55}
           name="输入"
         />
@@ -64,8 +72,8 @@ export function TokenAreaChart({
           type="monotone"
           dataKey="output"
           stackId="1"
-          fill="hsl(199 89% 55%)"
-          stroke="hsl(199 89% 42%)"
+          fill={TERRACOTTA_LIGHT}
+          stroke={TERRACOTTA}
           fillOpacity={0.55}
           name="输出"
         />
@@ -92,7 +100,7 @@ export function ActiveUsersLineChart({
         data={data}
         margin={{ left: 2, right: 8, top: 8, bottom: 16 }}
       >
-        <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 24% 90%)" />
+        <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
         <XAxis dataKey="date" tick={{ fontSize: fs }} interval={2} />
         <YAxis
           yAxisId="users"
@@ -106,7 +114,7 @@ export function ActiveUsersLineChart({
             value: "用户数",
             angle: -90,
             position: "insideLeft",
-            style: { fontSize: 10, fill: "hsl(215 16% 47%)" },
+            style: { fontSize: 10, fill: AXIS_LABEL },
           }}
         />
         <YAxis
@@ -121,7 +129,7 @@ export function ActiveUsersLineChart({
             value: "对话数",
             angle: 90,
             position: "insideRight",
-            style: { fontSize: 10, fill: "hsl(215 16% 47%)" },
+            style: { fontSize: 10, fill: AXIS_LABEL },
           }}
         />
         <Tooltip
@@ -141,9 +149,9 @@ export function ActiveUsersLineChart({
           type="monotone"
           dataKey="activeUsers"
           name="活跃用户"
-          stroke="hsl(217, 91%, 48%)"
+          stroke={WINE}
           strokeWidth={2}
-          dot={{ r: 2.5, fill: "hsl(217, 91%, 48%)" }}
+          dot={{ r: 2.5, fill: WINE }}
           activeDot={{ r: 4 }}
         />
         <Line
@@ -151,9 +159,9 @@ export function ActiveUsersLineChart({
           type="monotone"
           dataKey="conversations"
           name="对话数量"
-          stroke="hsl(199, 89%, 42%)"
+          stroke={TERRACOTTA}
           strokeWidth={2}
-          dot={{ r: 2.5, fill: "hsl(199, 89%, 42%)" }}
+          dot={{ r: 2.5, fill: TERRACOTTA }}
           activeDot={{ r: 4 }}
         />
       </LineChart>
@@ -206,13 +214,13 @@ export function TokenCostBarChart({
   return (
     <ResponsiveContainer width="100%" height={260}>
       <BarChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 24% 90%)" />
+        <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
         <XAxis dataKey="date" tick={{ fontSize: 10 }} interval={6} />
         <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `$${v}`} />
         <Tooltip formatter={(v: number) => `$${v}`} />
         <Bar
           dataKey="cost"
-          fill="hsl(38, 92%, 50%)"
+          fill={TERRACOTTA}
           radius={[2, 2, 0, 0]}
           name="成本"
         />
@@ -229,7 +237,7 @@ export function TokenStackedAreaChart({
   return (
     <ResponsiveContainer width="100%" height={260}>
       <AreaChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 24% 90%)" />
+        <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
         <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={4} />
         <YAxis
           tick={{ fontSize: 11 }}
@@ -245,8 +253,8 @@ export function TokenStackedAreaChart({
           type="monotone"
           dataKey="input"
           stackId="1"
-          fill="hsl(217 91% 70%)"
-          stroke="hsl(217 91% 45%)"
+          fill={WINE_LIGHT}
+          stroke={WINE}
           fillOpacity={0.55}
           name="输入 Token"
         />
@@ -254,8 +262,8 @@ export function TokenStackedAreaChart({
           type="monotone"
           dataKey="output"
           stackId="1"
-          fill="hsl(199 89% 55%)"
-          stroke="hsl(199 89% 42%)"
+          fill={TERRACOTTA_LIGHT}
+          stroke={TERRACOTTA}
           fillOpacity={0.55}
           name="输出 Token"
         />

@@ -91,14 +91,14 @@ export default function AdminPortal() {
     <div className="flex h-screen overflow-hidden text-foreground">
       <aside
         className={cn(
-          "flex shrink-0 flex-col border-r border-border/70 bg-white/90 backdrop-blur-xl transition-[width] duration-200",
+          "flex shrink-0 flex-col border-r border-border/60 bg-white/70 backdrop-blur-md transition-[width] duration-200",
           sidebarOpen ? "w-56" : "w-[52px]"
         )}
       >
         <div className="flex h-14 items-center justify-between gap-2 border-b border-border/70 px-3">
           {sidebarOpen ? (
             <div className="min-w-0">
-              <div className="font-display text-sm font-semibold tracking-tight text-foreground">
+              <div className="font-display text-sm font-semibold tracking-tight text-[hsl(var(--wine-deep))]">
                 合域
               </div>
               <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">
@@ -167,7 +167,7 @@ export default function AdminPortal() {
         {sidebarOpen && (
           <div className="border-t border-border/70 p-3">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-blue-600 text-xs font-bold text-white shadow-sm">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[hsl(var(--wine-deep))] to-[hsl(var(--wine))] text-xs font-bold text-white shadow-sm">
                 A
               </div>
               <div className="min-w-0 text-xs">
@@ -181,15 +181,15 @@ export default function AdminPortal() {
         )}
       </aside>
 
-      <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-gradient-to-b from-background via-sky-50/[0.35] to-background">
-        <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between border-b border-border/60 bg-background/75 px-6 backdrop-blur-xl">
-          <h1 className="font-display text-base font-semibold tracking-tight text-foreground">
+      <main className="relative z-[1] flex min-h-0 min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between border-b border-border/60 bg-background/80 px-6 backdrop-blur-xl">
+          <h1 className="font-display text-base font-semibold tracking-tight text-[hsl(var(--wine-deep))]">
             {navItems.find((n) => n.id === page)?.label ?? "概览"}
           </h1>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <span className="text-xs">2026-04-14</span>
             <span className="inline-flex items-center gap-1.5 text-xs">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+              <span className="h-2 w-2 animate-pulse rounded-full bg-[hsl(var(--sage))]" />
               系统正常
             </span>
           </div>

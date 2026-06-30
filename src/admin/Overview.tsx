@@ -1,7 +1,5 @@
 import type { ReactNode } from "react";
 import {
-  BookOpen,
-  ClipboardList,
   Coins,
   Database,
   FolderKanban,
@@ -73,19 +71,12 @@ function SummaryCard({
   icon,
   label,
   value,
-  sub,
-  trend,
   className,
-  /** 与「项目状态一览」色块主数字区垂直对齐：略下移主数字与副文案 */
-  leadOffset,
 }: {
   icon: ReactNode;
   label: string;
   value: string;
-  sub?: string;
-  trend?: "up" | "down";
   className?: string;
-  leadOffset?: boolean;
 }) {
   return (
     <div
@@ -94,7 +85,6 @@ function SummaryCard({
         className
       )}
     >
-      {/* 固定 h-9 标题行 + 单行标题，与「项目状态一览」及整页指标卡对齐 */}
       <div className="mb-1 flex h-9 shrink-0 items-center justify-between gap-2">
         <span className="line-clamp-1 min-w-0 flex-1 pr-1 text-sm font-medium leading-tight text-muted-foreground">
           {label}
@@ -103,42 +93,38 @@ function SummaryCard({
           {icon}
         </div>
       </div>
-      <div
-        className={cn(
-          "font-display text-3xl font-semibold tabular-nums leading-none tracking-tight text-foreground md:text-4xl",
-          leadOffset && "mt-2.5"
-        )}
-      >
+      <div className="font-display text-3xl font-semibold tabular-nums leading-none tracking-tight text-foreground md:text-4xl">
         {value}
       </div>
-      {sub ? (
-        <div className="mt-1 shrink-0 text-sm leading-tight text-muted-foreground">
-          <span
-            className={cn(
-              trend === "up" && "text-emerald-600",
-              trend === "down" && "text-red-600"
-            )}
-          >
-            {sub}
-          </span>
-        </div>
-      ) : null}
     </div>
   );
 }
 
-/** 各阶段在管项目数量（若日后需要饼图，可另增模块，避免与本块重复） */
-function ProjectStatusPanel({
+/** 指标/状态网格面板：标题 + 等宽色块，用于项目区左右对称布局 */
+function StatsPanel({
+  title,
+  icon,
   items,
+  columns = 4,
   className,
 }: {
+  title: string;
+  icon: ReactNode;
   items: {
     label: string;
-    n: number;
+    value: string | number;
     cl: string;
   }[];
+  columns?: 2 | 3 | 4;
   className?: string;
 }) {
+  const gridClass =
+    columns === 3
+      ? "grid-cols-1 sm:grid-cols-3"
+      : columns === 2
+        ? "grid-cols-2"
+        : "grid-cols-2 sm:grid-cols-4";
+
   return (
     <div
       className={cn(
@@ -148,13 +134,13 @@ function ProjectStatusPanel({
     >
       <div className="mb-1 flex h-9 shrink-0 items-center justify-between gap-2">
         <span className="line-clamp-1 min-w-0 flex-1 pr-1 text-sm font-medium leading-tight text-muted-foreground">
-          项目状态一览
+          {title}
         </span>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted/80">
-          <LayoutGrid className="h-5 w-5 text-primary" strokeWidth={2} />
+          {icon}
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-2.5">
+      <div className={cn("grid flex-1 gap-2 sm:gap-2.5", gridClass)}>
         {items.map((x) => (
           <div
             key={x.label}
@@ -165,9 +151,11 @@ function ProjectStatusPanel({
             )}
           >
             <div className="font-display text-2xl font-semibold tabular-nums leading-none md:text-3xl">
-              {x.n}
+              {x.value}
             </div>
-            <div className="text-xs font-medium leading-tight sm:text-sm">{x.label}</div>
+            <div className="text-xs font-medium leading-tight sm:text-sm">
+              {x.label}
+            </div>
           </div>
         ))}
       </div>
@@ -223,23 +211,41 @@ export function OverviewPage() {
   const statusItems = [
     {
       label: "筹备中",
-      n: phase.active,
-      cl: "text-sky-700 bg-sky-50 border-sky-200/80",
+      value: phase.active,
+      cl: "text-[hsl(var(--wine-deep))] bg-[hsl(var(--wine-muted)/0.65)] border-[hsl(var(--wine)/0.28)]",
     },
     {
       label: "已签约",
-      n: phase.completed,
-      cl: "text-emerald-700 bg-emerald-50 border-emerald-200/80",
+      value: phase.completed,
+      cl: "text-[hsl(145_22%_30%)] bg-[hsl(var(--sage)/0.12)] border-[hsl(var(--sage)/0.35)]",
     },
     {
       label: "暂停",
-      n: phase.paused,
-      cl: "text-amber-800 bg-amber-50 border-amber-200/80",
+      value: phase.paused,
+      cl: "text-[hsl(18_28%_32%)] bg-[hsl(var(--terracotta)/0.12)] border-[hsl(var(--terracotta)/0.35)]",
     },
     {
       label: "已取消",
-      n: phase.cancelled,
+      value: phase.cancelled,
       cl: "text-red-700 bg-red-50 border-red-200/80",
+    },
+  ];
+
+  const projectMetrics = [
+    {
+      label: "在管项目",
+      value: TOTAL_PROJECT_COUNT,
+      cl: "text-[hsl(var(--wine-deep))] bg-[hsl(var(--wine-muted)/0.65)] border-[hsl(var(--wine)/0.28)]",
+    },
+    {
+      label: "知识库文档",
+      value: knowledgeDocCount,
+      cl: "text-[hsl(145_22%_30%)] bg-[hsl(var(--sage)/0.12)] border-[hsl(var(--sage)/0.35)]",
+    },
+    {
+      label: "待处理问题",
+      value: PENDING_ISSUES_DEMO,
+      cl: "text-[hsl(18_28%_32%)] bg-[hsl(var(--terracotta)/0.12)] border-[hsl(var(--terracotta)/0.35)]",
     },
   ];
 
@@ -250,40 +256,19 @@ export function OverviewPage() {
         title="项目"
         icon={<FolderKanban className="h-5 w-5" strokeWidth={2} />}
       >
-        <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-stretch lg:gap-3 xl:gap-4">
-          <SummaryCard
-            leadOffset
-            className="min-w-0 lg:min-h-0 lg:max-w-[12.5rem] lg:shrink lg:grow-0 lg:basis-[11rem]"
-            icon={
-              <Database className="h-5 w-5 text-primary" strokeWidth={2} />
-            }
-            label="在管项目"
-            value={String(TOTAL_PROJECT_COUNT)}
-            sub={`${phase.active} 个筹备中`}
+        <div className="grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-4 xl:gap-5">
+          <StatsPanel
+            title="项目概览"
+            icon={<Database className="h-5 w-5 text-primary" strokeWidth={2} />}
+            items={projectMetrics}
+            columns={3}
           />
-          <SummaryCard
-            leadOffset
-            className="min-w-0 lg:min-h-0 lg:max-w-[12.5rem] lg:shrink lg:grow-0 lg:basis-[11rem]"
-            icon={
-              <BookOpen className="h-5 w-5 text-primary" strokeWidth={2} />
-            }
-            label="知识库文档"
-            value={String(knowledgeDocCount)}
-            sub="已入库可检索"
+          <StatsPanel
+            title="项目状态一览"
+            icon={<LayoutGrid className="h-5 w-5 text-primary" strokeWidth={2} />}
+            items={statusItems}
+            columns={4}
           />
-          <SummaryCard
-            leadOffset
-            className="min-w-0 lg:min-h-0 lg:max-w-[12.5rem] lg:shrink lg:grow-0 lg:basis-[11rem]"
-            icon={
-              <ClipboardList className="h-5 w-5 text-primary" strokeWidth={2} />
-            }
-            label="待处理问题"
-            value={String(PENDING_ISSUES_DEMO)}
-            sub="含跨项目待办"
-          />
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-            <ProjectStatusPanel items={statusItems} />
-          </div>
         </div>
       </SectionBlock>
 
@@ -301,7 +286,6 @@ export function OverviewPage() {
               }
               label="工作台账号"
               value={String(WORKSPACE_USERS.length)}
-              sub="含预览访客账号"
             />
             <SummaryCard
               icon={
@@ -309,7 +293,6 @@ export function OverviewPage() {
               }
               label="今日活跃用户"
               value={String(todayActiveUsers)}
-              sub="当日至少一次会话"
             />
             <SummaryCard
               icon={
@@ -317,7 +300,6 @@ export function OverviewPage() {
               }
               label="今日对话数"
               value={String(todayConversations)}
-              sub="当日会话条数合计"
             />
           </div>
           <ChartCard
@@ -340,8 +322,6 @@ export function OverviewPage() {
             icon={<Coins className="h-5 w-5 text-primary" strokeWidth={2} />}
             label="本月 Token"
             value={`${monthTokenM}M`}
-            sub="环比 +12.4%"
-            trend="up"
           />
           <ChartCard
             title="近 30 天 Token 消耗趋势"

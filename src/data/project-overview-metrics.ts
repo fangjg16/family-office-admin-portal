@@ -1,7 +1,7 @@
 /**
  * 管理后台「在管项目」等指标：独立口径，与 @/data/platform 中项目 id 一一对应。
- * 数值结合各项目 summary 中的规模/金额线索编排；未在摘要中出现的项为合理占位。
- * 请勿修改 family-office-platform 源码；若工作台侧后续提供正式字段，可在此对接。
+ * 规模/净值/起投：D1 项目表暂无字段，未披露项以「—」占位；风险为管理演示口径。
+ * 项目主数据同步自生产 API（见 platform.ts 注释）。
  */
 
 import { ALL_PROJECTS } from "./platform";
@@ -21,77 +21,29 @@ export type ProjectOverviewMetric = {
 /** 与 ALL_PROJECTS[].id 对齐 */
 export const PROJECT_OVERVIEW_METRICS_BY_ID: Record<string, ProjectOverviewMetric> =
   {
-    shrimp: {
-      scaleLabel: "0.85 亿",
-      netValueLabel: "—",
-      minInvestWanLabel: "100 万",
-      riskLevel: "中",
-    },
-    "natgeo-rwa": {
-      scaleLabel: "3.2 亿",
-      netValueLabel: "—",
-      minInvestWanLabel: "300 万",
-      riskLevel: "中高",
-    },
-    "europe-hotel-ma": {
-      scaleLabel: "1.8 亿",
-      netValueLabel: "—",
-      minInvestWanLabel: "400 万",
-      riskLevel: "中高",
-    },
-    "coastal-estate": {
-      scaleLabel: "2.6 亿",
-      netValueLabel: "1.05 亿",
-      minInvestWanLabel: "500 万",
-      riskLevel: "中",
-    },
-    "cross-trade": {
-      scaleLabel: "1.2 亿",
-      netValueLabel: "—",
-      minInvestWanLabel: "200 万",
-      riskLevel: "中",
-    },
-    "digital-portal": {
-      scaleLabel: "0.03 亿",
-      netValueLabel: "—",
-      minInvestWanLabel: "50 万",
-      riskLevel: "中",
-    },
-    "ip-invest": {
-      scaleLabel: "0.8 亿",
+    "proj-87c4b0718f58": {
+      scaleLabel: "—",
       netValueLabel: "—",
       minInvestWanLabel: "—",
-      riskLevel: "高",
-    },
-    "hk-us-equity": {
-      scaleLabel: "2.1 亿",
-      netValueLabel: "1.88 亿",
-      minInvestWanLabel: "50 万",
       riskLevel: "中高",
     },
-    "energy-ma": {
-      scaleLabel: "4.8 亿",
-      netValueLabel: "3.40 亿",
-      minInvestWanLabel: "1,000 万",
-      riskLevel: "中",
-    },
-    "med-channel": {
-      scaleLabel: "1.2 亿",
-      netValueLabel: "0.62 亿",
-      minInvestWanLabel: "300 万",
-      riskLevel: "中",
-    },
-    "offshore-trust": {
-      scaleLabel: "0.9 亿",
+    "proj-4a974e67c0f9": {
+      scaleLabel: "—",
       netValueLabel: "—",
-      minInvestWanLabel: "200 万",
+      minInvestWanLabel: "—",
       riskLevel: "中高",
     },
-    "edu-ma": {
-      scaleLabel: "3.5 亿",
+    "proj-535a240acf88": {
+      scaleLabel: "—",
       netValueLabel: "—",
-      minInvestWanLabel: "800 万",
+      minInvestWanLabel: "—",
       riskLevel: "中高",
+    },
+    "proj-7c0f947a6a00": {
+      scaleLabel: "—",
+      netValueLabel: "—",
+      minInvestWanLabel: "—",
+      riskLevel: "中",
     },
   };
 

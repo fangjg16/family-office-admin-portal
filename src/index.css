@@ -4,25 +4,55 @@
 
 @layer base {
   /**
-   * 管理后台：与 platform 工作台相同的浅色语义色（长时间阅读友好）
+   * 管理后台：与主平台 workspace 一致的波西米亚亚麻 + 酒红语义色
+   * Token 来源：family-office-platform/design/brand-tokens.css
    */
   .admin-app {
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
-    --primary: 217 91% 45%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 214 32% 95%;
-    --secondary-foreground: 222 30% 22%;
-    --muted: 210 35% 96%;
-    --muted-foreground: 215 16% 42%;
-    --accent: 210 50% 96%;
-    --accent-foreground: 217 50% 28%;
+    --wine: 5 32% 46%;
+    --wine-hover: 5 34% 40%;
+    --wine-muted: 5 24% 92%;
+    --wine-foreground: 36 40% 98%;
+    --wine-mid: 353 32% 43%;
+    --wine-mid-foreground: 36 40% 98%;
+    --wine-deep: 353 42% 32%;
+    --wine-deep-foreground: 36 40% 98%;
+    --linen: 36 32% 94%;
+    --sand: 34 22% 88%;
+    --warm-charcoal: 25 18% 18%;
+    --warm-charcoal-muted: 25 10% 45%;
+    --terracotta: 18 28% 58%;
+    --sage: 145 18% 42%;
+
+    --background: var(--linen);
+    --foreground: var(--warm-charcoal);
+    --primary: var(--wine);
+    --primary-foreground: var(--wine-foreground);
+    --secondary: 36 24% 92%;
+    --secondary-foreground: 25 16% 28%;
+    --muted: 35 18% 91%;
+    --muted-foreground: var(--warm-charcoal-muted);
+    --accent: var(--wine-muted);
+    --accent-foreground: 5 28% 38%;
     --destructive: 0 72% 46%;
     --destructive-foreground: 0 0% 99%;
-    --border: 214 24% 88%;
-    --input: 214 24% 90%;
-    --ring: 217 91% 50%;
+    --border: 34 16% 84%;
+    --input: 35 20% 91%;
+    --ring: var(--wine);
     --radius: 0.75rem;
+    --nav-button: 36 22% 93%;
+    --surface-alt: 35 18% 92%;
+
+    --glass-bg: rgba(255, 252, 248, 0.2);
+    --glass-bg-hover: rgba(255, 252, 248, 0.3);
+    --glass-blur: 28px;
+    --glass-saturate: 165%;
+    --glass-border: rgba(255, 255, 255, 0.38);
+    --glass-edge: rgba(25, 18, 18, 0.06);
+    --glass-shadow:
+      0 12px 40px rgba(25, 18, 18, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.42);
+    --glass-radius: 1.5rem;
+
     color-scheme: light;
   }
 
@@ -36,5 +66,64 @@
 
   .admin-app ::selection {
     @apply bg-primary/20 text-foreground;
+  }
+}
+
+@layer components {
+  .workspace-paper-bg {
+    position: relative;
+    isolation: isolate;
+    background-color: hsl(36 32% 94%);
+    background-image: url("https://www.transparenttextures.com/patterns/natural-paper.png");
+  }
+
+  .workspace-paper-bg::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.35;
+    background-image:
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E"),
+      linear-gradient(
+        180deg,
+        hsl(36 30% 94.5% / 0.55) 0%,
+        hsl(35 24% 92% / 0.35) 42%,
+        hsl(33 20% 89.5% / 0.45) 100%
+      );
+    background-size: 180px 180px, 100% 100%;
+    mix-blend-mode: multiply;
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    .workspace-paper-bg::before {
+      opacity: 0.12;
+    }
+  }
+}
+
+@layer utilities {
+  .glass-bohemian {
+    background: linear-gradient(
+      165deg,
+      rgba(255, 255, 255, 0.34) 0%,
+      var(--glass-bg) 42%,
+      rgba(255, 250, 245, 0.14) 100%
+    );
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    border: 1px solid var(--glass-border);
+    border-radius: var(--glass-radius);
+    box-shadow:
+      0 0 0 1px var(--glass-edge),
+      var(--glass-shadow);
+    isolation: isolate;
+  }
+
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass-bohemian {
+      background: rgba(255, 252, 248, 0.92);
+    }
   }
 }

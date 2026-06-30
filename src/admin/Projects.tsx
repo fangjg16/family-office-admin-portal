@@ -1,13 +1,13 @@
 import { useMemo, useState } from "react";
 import {
   AlertTriangle,
-  BookOpen,
   Bot,
   Briefcase,
   Building2,
   ChevronDown,
   ChevronUp,
   Download,
+  FileText,
   Film,
   Globe,
   Landmark,
@@ -21,19 +21,170 @@ import {
 import type { WorkspaceProject } from "@/data/platform";
 import { ALL_PROJECTS } from "@/data/platform";
 import {
+  getRelatedDocumentsForProject,
+  type DocParseStatus,
+} from "@/data/project-related-documents";
+import {
   PROJECT_OVERVIEW_METRICS_BY_ID,
   type ProjectRiskLevel,
 } from "@/data/project-overview-metrics";
 import { cn } from "@/lib/utils";
 
+function parseStatusClass(status: DocParseStatus): string {
+  if (status === "已解析") return "text-[hsl(145_22%_30%)]";
+  if (status === "解析中") return "text-[hsl(18_28%_38%)]";
+  return "text-red-600";
+}
+
+function DocumentRow({
+  filename,
+  parseStatus,
+  userName,
+}: {
+  filename: string;
+  parseStatus: DocParseStatus;
+  userName?: string;
+}) {
+  if (userName) {
+    return (
+      <li className="grid grid-cols-[4.25rem_minmax(0,1fr)_3.25rem] items-center gap-x-3 border-b border-border/40 py-2.5 last:border-0 sm:grid-cols-[4.75rem_minmax(0,1fr)_3.5rem] sm:gap-x-4">
+        <span className="truncate rounded bg-muted px-1.5 py-0.5 text-center text-[11px] font-medium text-foreground/85">
+          {userName}
+        </span>
+        <span className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+          <FileText className="h-3.5 w-3.5 shrink-0 text-primary/70" />
+          <span className="truncate">{filename}</span>
+        </span>
+        <span
+          className={cn(
+            "text-right text-xs leading-none",
+            parseStatusClass(parseStatus)
+          )}
+        >
+          {parseStatus}
+        </span>
+      </li>
+    );
+  }
+
+  return (
+    <li className="grid grid-cols-[minmax(0,1fr)_3.25rem] items-center gap-x-4 border-b border-border/40 py-2.5 last:border-0 sm:gap-x-6">
+      <span className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+        <FileText className="h-3.5 w-3.5 shrink-0 text-primary/70" />
+        <span className="truncate">{filename}</span>
+      </span>
+      <span
+        className={cn(
+          "text-right text-xs leading-none",
+          parseStatusClass(parseStatus)
+        )}
+      >
+        {parseStatus}
+      </span>
+    </li>
+  );
+}
+
+function AgentCognitionPanel({ project }: { project: WorkspaceProject }) {
+  return (
+    <div className="rounded-lg border border-border/70 p-4">
+      <h4 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-foreground">
+        <Bot className="h-4 w-4 text-primary" />
+        Agent 认知摘要
+      </h4>
+      <p className="text-sm leading-relaxed text-muted-foreground">
+        「{project.name}」当前阶段为 {project.phase}，赛道为 {project.category}
+        。对访客与内部用户展示的颗粒度不同：访客侧以
+        {project.guestSummary.length > 48
+          ? `${project.guestSummary.slice(0, 48)}…`
+          : project.guestSummary}
+        为摘要；内部侧可结合项目资料包与对话附件展开业务与合规细节。
+      </p>
+      <button
+        type="button"
+        className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80"
+      >
+        <RefreshCw className="h-3 w-3" />
+        重新生成认知
+      </button>
+    </div>
+  );
+}
+
+function RelatedDocumentsPanel({ projectId }: { projectId: string }) {
+  const { projectDocuments, conversationDocuments } =
+    getRelatedDocumentsForProject(projectId);
+
+  return (
+    <div className="rounded-lg border border-border/70 p-4">
+      <h4 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-foreground">
+        <FileText className="h-4 w-4 text-primary" />
+        相关文档
+      </h4>
+
+      <div className="space-y-5">
+        <div>
+          <div className="mb-2 text-xs font-medium text-muted-foreground">
+            项目文档
+            <span className="ml-1.5 font-normal text-muted-foreground/70">
+              · 资料包上传
+            </span>
+          </div>
+          {projectDocuments.length > 0 ? (
+            <ul className="rounded-md border border-border/50 bg-muted/10 px-3">
+              {projectDocuments.map((doc) => (
+                <DocumentRow
+                  key={doc.filename}
+                  filename={doc.filename}
+                  parseStatus={doc.parseStatus}
+                />
+              ))}
+            </ul>
+          ) : (
+            <p className="py-2 text-xs text-muted-foreground">暂无</p>
+          )}
+        </div>
+
+        <div className="border-t border-border/50 pt-5">
+          <div className="mb-2 text-xs font-medium text-muted-foreground">
+            对话文档
+            <span className="ml-1.5 font-normal text-muted-foreground/70">
+              · 标注上传用户
+            </span>
+          </div>
+          {conversationDocuments.length > 0 ? (
+            <ul className="rounded-md border border-border/50 bg-muted/10 px-3">
+              {conversationDocuments.map((doc) => (
+                <DocumentRow
+                  key={`${doc.conversationId}-${doc.filename}`}
+                  filename={doc.filename}
+                  parseStatus={doc.parseStatus}
+                  userName={doc.userName}
+                />
+              ))}
+            </ul>
+          ) : (
+            <p className="py-2 text-xs text-muted-foreground">暂无</p>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-3 flex items-center gap-1 border-t border-border/50 pt-3 text-xs text-[hsl(18_28%_32%)]">
+        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+        文档更新频率将同步至工作台对话区展示策略（示意）。
+      </div>
+    </div>
+  );
+}
+
 function projectRiskBadgeClass(r: ProjectRiskLevel) {
   switch (r) {
     case "低":
-      return "bg-emerald-50 text-emerald-800 ring-emerald-200/80";
+      return "bg-[hsl(var(--sage)/0.12)] text-[hsl(145_22%_30%)] ring-[hsl(var(--sage)/0.35)]";
     case "中":
-      return "bg-sky-50 text-sky-800 ring-sky-200/80";
+      return "bg-[hsl(var(--wine-muted)/0.65)] text-[hsl(var(--wine-deep))] ring-[hsl(var(--wine)/0.28)]";
     case "中高":
-      return "bg-amber-50 text-amber-900 ring-amber-200/80";
+      return "bg-[hsl(var(--terracotta)/0.12)] text-[hsl(18_28%_32%)] ring-[hsl(var(--terracotta)/0.35)]";
     case "高":
       return "bg-red-50 text-red-800 ring-red-200/80";
     default:
@@ -43,9 +194,9 @@ function projectRiskBadgeClass(r: ProjectRiskLevel) {
 
 function PhaseBadge({ phase }: { phase: string }) {
   const map: Record<string, string> = {
-    "Active（资源筹备中）": "bg-sky-50 text-sky-800 ring-sky-200/80",
-    "Completed（已签约）": "bg-emerald-50 text-emerald-800 ring-emerald-200/80",
-    "Paused（暂停）": "bg-amber-50 text-amber-900 ring-amber-200/80",
+    "Active（资源筹备中）": "bg-[hsl(var(--wine-muted)/0.65)] text-[hsl(var(--wine-deep))] ring-[hsl(var(--wine)/0.28)]",
+    "Completed（已签约）": "bg-[hsl(var(--sage)/0.12)] text-[hsl(145_22%_30%)] ring-[hsl(var(--sage)/0.35)]",
+    "Paused（暂停）": "bg-[hsl(var(--terracotta)/0.12)] text-[hsl(18_28%_32%)] ring-[hsl(var(--terracotta)/0.35)]",
     "Cancelled（已取消）": "bg-red-50 text-red-800 ring-red-200/80",
   };
   return (
@@ -62,18 +213,20 @@ function PhaseBadge({ phase }: { phase: string }) {
 
 function TypeIcon({ category }: { category: string }) {
   const c = category.toLowerCase();
+  if (c.includes("biotech") || c.includes("多肽") || c.includes("医疗"))
+    return <Star className="h-3.5 w-3.5 text-[hsl(var(--wine-deep))]" />;
+  if (c.includes("trade") || c.includes("贸易"))
+    return <Globe className="h-3.5 w-3.5 text-[hsl(var(--terracotta))]" />;
+  if (c.includes("ip") || c.includes("影视") || c.includes("演员"))
+    return <Film className="h-3.5 w-3.5 text-[hsl(var(--wine-mid))]" />;
+  if (c.includes("pet") || c.includes("再生") || c.includes("环保"))
+    return <Building2 className="h-3.5 w-3.5 text-[hsl(var(--sage))]" />;
   if (c.includes("地产") || c.includes("酒店"))
-    return <Building2 className="h-3.5 w-3.5 text-amber-600" />;
+    return <Building2 className="h-3.5 w-3.5 text-[hsl(var(--terracotta))]" />;
   if (c.includes("证券") || c.includes("数字"))
-    return <Landmark className="h-3.5 w-3.5 text-sky-600" />;
-  if (c.includes("文娱") || c.includes("ip"))
-    return <Film className="h-3.5 w-3.5 text-purple-600" />;
+    return <Landmark className="h-3.5 w-3.5 text-[hsl(var(--wine))]" />;
   if (c.includes("离岸") || c.includes("法务"))
-    return <Shield className="h-3.5 w-3.5 text-emerald-600" />;
-  if (c.includes("跨境") || c.includes("贸易"))
-    return <Globe className="h-3.5 w-3.5 text-cyan-600" />;
-  if (c.includes("医疗"))
-    return <Star className="h-3.5 w-3.5 text-rose-600" />;
+    return <Shield className="h-3.5 w-3.5 text-[hsl(var(--sage))]" />;
   return <Briefcase className="h-3.5 w-3.5 text-primary" />;
 }
 
@@ -376,46 +529,9 @@ export function ProjectsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="rounded-lg border border-border/70 p-3">
-              <h4 className="mb-2 flex items-center gap-1 text-sm font-semibold text-foreground">
-                <BookOpen className="h-4 w-4 text-primary" />
-                知识库关联
-              </h4>
-              <div className="space-y-1.5 text-sm">
-                <div className="flex items-center justify-between text-muted-foreground">
-                  <span>📄 {sel.name}_内部备忘录.pdf</span>
-                  <span className="text-xs text-emerald-700">已解析</span>
-                </div>
-                <div className="flex items-center justify-between text-muted-foreground">
-                  <span>📄 {sel.name}_风控要点.docx</span>
-                  <span className="text-xs text-emerald-700">已解析</span>
-                </div>
-                <div className="mt-2 flex items-center gap-1 text-xs text-amber-800">
-                  <AlertTriangle className="h-3.5 w-3.5" />
-                  文档更新频率将同步至工作台对话区展示策略（示意）。
-                </div>
-              </div>
-            </div>
-            <div className="rounded-lg border border-border/70 p-3">
-              <h4 className="mb-2 flex items-center gap-1 text-sm font-semibold text-foreground">
-                <Bot className="h-4 w-4 text-primary" />
-                Agent 认知摘要
-              </h4>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                「{sel.name}」当前阶段为 {sel.phase}
-                ，赛道为 {sel.category}。对访客与内部用户展示的颗粒度不同：访客侧以{" "}
-                {sel.guestSummary.slice(0, 24)}
-                … 为摘要；内部侧可展开资金与交易结构细节。
-              </p>
-              <button
-                type="button"
-                className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80"
-              >
-                <RefreshCw className="h-3 w-3" />
-                重新生成认知
-              </button>
-            </div>
+          <div className="space-y-4">
+            <AgentCognitionPanel project={sel} />
+            <RelatedDocumentsPanel projectId={sel.id} />
           </div>
         </div>
       )}

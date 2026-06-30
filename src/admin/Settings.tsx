@@ -110,7 +110,7 @@ export function SettingsPage() {
       <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
         <section className="rounded-xl border border-border/80 bg-white/95 p-4 shadow-sm backdrop-blur-sm">
           <div className="mb-3 flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[hsl(var(--terracotta)/0.14)] text-[hsl(18_28%_38%)]">
               <KeyRound className="h-4 w-4" strokeWidth={2} />
             </div>
             <h3 className="font-display text-sm font-semibold text-foreground">
@@ -172,7 +172,7 @@ export function SettingsPage() {
 
         <section className="rounded-xl border border-border/80 bg-white/95 p-4 shadow-sm backdrop-blur-sm">
           <div className="mb-3 flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-100 text-sky-700">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[hsl(var(--wine-muted))] text-[hsl(var(--wine-deep))]">
               <Hexagon className="h-4 w-4" strokeWidth={2} />
             </div>
             <h3 className="font-display text-sm font-semibold text-foreground">
@@ -234,7 +234,7 @@ export function SettingsPage() {
 
       <section className="rounded-xl border border-border/80 bg-white/95 p-4 shadow-sm backdrop-blur-sm">
         <div className="mb-3 flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[hsl(var(--sage)/0.14)] text-[hsl(145_22%_32%)]">
             <Database className="h-4 w-4" strokeWidth={2} />
           </div>
           <h3 className="font-display text-sm font-semibold text-foreground">

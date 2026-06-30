@@ -19,17 +19,18 @@ import {
 import { cn } from "@/lib/utils";
 
 const AVATAR_RING: Record<string, string> = {
-  "candice-guo": "from-violet-600 to-indigo-700",
-  "jimmy-huang": "from-sky-500 to-blue-600",
-  "jessica-hu": "from-amber-800/90 to-stone-700",
-  "jensen-fang": "from-stone-400 to-stone-500",
-  "janice-hi": "from-slate-300 to-slate-400",
+  "candice-guo": "from-[hsl(var(--wine-deep))] to-[hsl(var(--wine-mid))]",
+  "jimmy-huang": "from-[hsl(var(--wine))] to-[hsl(var(--terracotta))]",
+  "jessica-hu": "from-[hsl(var(--terracotta))] to-[hsl(25_18%_28%)]",
+  "jensen-fang": "from-[hsl(34_22%_58%)] to-[hsl(25_18%_32%)]",
+  "janice-hi": "from-[hsl(var(--sand))] to-[hsl(35_18%_75%)]",
 };
 
 function statusBadgeClass(s: AccountStatus) {
-  if (s === "正常") return "bg-emerald-50 text-emerald-800 ring-emerald-200/80";
+  if (s === "正常")
+    return "bg-[hsl(var(--sage)/0.12)] text-[hsl(145_22%_30%)] ring-[hsl(var(--sage)/0.35)]";
   if (s === "冻结") return "bg-red-50 text-red-800 ring-red-200/80";
-  return "bg-amber-50 text-amber-900 ring-amber-200/80";
+  return "bg-[hsl(var(--terracotta)/0.12)] text-[hsl(18_28%_32%)] ring-[hsl(var(--terracotta)/0.35)]";
 }
 
 function UserDetailModal({

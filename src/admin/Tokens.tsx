@@ -100,14 +100,14 @@ function SummaryCard({
       {sub && (
         <div className="mt-1 flex items-center gap-1 text-xs">
           {trend === "up" && (
-            <TrendingUp className="h-3 w-3 text-emerald-600" />
+            <TrendingUp className="h-3 w-3 text-[hsl(var(--sage))]" />
           )}
           {trend === "down" && (
             <TrendingDown className="h-3 w-3 text-red-500" />
           )}
           <span
             className={cn(
-              trend === "up" && "text-emerald-700",
+              trend === "up" && "text-[hsl(145_22%_30%)]",
               trend === "down" && "text-red-600",
               !trend && "text-muted-foreground"
             )}
@@ -136,25 +136,25 @@ export function TokensPage() {
       label: "管理 / Admin",
       t: 382400 + 12000,
       c: 160,
-      ring: "border-indigo-200/90 bg-indigo-50/80",
+      ring: "border-[hsl(var(--wine-deep)/0.28)] bg-[hsl(var(--wine-muted)/0.75)]",
     },
     {
       label: "Core / Mid",
       t: 298700 + 245100,
       c: 210,
-      ring: "border-sky-200/90 bg-sky-50/80",
+      ring: "border-[hsl(var(--wine)/0.28)] bg-[hsl(var(--wine-muted)/0.55)]",
     },
     {
       label: "Low / 研究",
       t: 201300,
       c: 87,
-      ring: "border-amber-200/90 bg-amber-50/80",
+      ring: "border-[hsl(var(--terracotta)/0.35)] bg-[hsl(var(--terracotta)/0.12)]",
     },
     {
       label: "访客 Guest",
       t: 17800,
       c: 12,
-      ring: "border-emerald-200/90 bg-emerald-50/80",
+      ring: "border-[hsl(var(--sage)/0.35)] bg-[hsl(var(--sage)/0.12)]",
     },
   ];
 
@@ -313,7 +313,7 @@ export function TokensPage() {
                   </td>
                   <td className="px-2 py-2.5">
                     {u.trend === "up" ? (
-                      <TrendingUp className="h-4 w-4 text-emerald-600" />
+                      <TrendingUp className="h-4 w-4 text-[hsl(var(--sage))]" />
                     ) : (
                       <TrendingDown className="h-4 w-4 text-red-400" />
                     )}

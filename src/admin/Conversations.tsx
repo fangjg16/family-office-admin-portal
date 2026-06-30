@@ -12,7 +12,6 @@ import {
   Filter,
   MessageCircle,
   MessageSquare,
-  RefreshCw,
   Search,
   ShieldAlert,
   ThumbsDown,
@@ -20,9 +19,12 @@ import {
   Wrench,
   X,
 } from "lucide-react";
-import { ALL_PROJECTS, WORKSPACE_USERS } from "@/data/platform";
+import { ALL_PROJECTS, WORKSPACE_USERS, conversationTierForProject, conversationUserOrganization } from "@/data/platform";
 import {
   CONVERSATIONS,
+  CONVERSATIONS_SYNCED_AT,
+} from "@/data/conversations";
+import {
   matchConversationView,
   type ConversationRow,
   type RiskLevel,
@@ -33,9 +35,9 @@ type ViewTab = "all" | "pending" | "policy" | "archived";
 
 function RiskBadge({ risk }: { risk: RiskLevel }) {
   const map: Record<RiskLevel, string> = {
-    正常: "bg-emerald-50 text-emerald-800 ring-emerald-200/80",
-    提示: "bg-sky-50 text-sky-800 ring-sky-200/80",
-    关注: "bg-orange-50 text-orange-900 ring-orange-200/80",
+    正常: "bg-[hsl(var(--sage)/0.12)] text-[hsl(145_22%_30%)] ring-[hsl(var(--sage)/0.35)]",
+    提示: "bg-[hsl(var(--wine-muted)/0.65)] text-[hsl(var(--wine-deep))] ring-[hsl(var(--wine)/0.28)]",
+    关注: "bg-[hsl(var(--terracotta)/0.12)] text-[hsl(18_28%_32%)] ring-[hsl(var(--terracotta)/0.35)]",
     拦截: "bg-red-50 text-red-800 ring-red-200/80",
   };
   return (
@@ -50,23 +52,38 @@ function RiskBadge({ risk }: { risk: RiskLevel }) {
   );
 }
 
-function TierBadge({ t }: { t: ConversationRow["roleTier"] }) {
+function TierBadge({ t }: { t: string }) {
   return (
-    <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
+    <span
+      className="inline-block whitespace-nowrap rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium leading-tight text-foreground"
+      title={t}
+    >
       {t}
     </span>
   );
 }
 
+const QUEUE_SHORT: Record<ConversationRow["lifecycleQueue"], string> = {
+  待合规复核: "合规复核",
+  对话跟进中: "跟进中",
+  已归档: "已归档",
+};
+
 function QueueBadge({ q }: { q: ConversationRow["lifecycleQueue"] }) {
   const map: Record<string, string> = {
-    对话跟进中: "bg-blue-50 text-blue-800",
-    待合规复核: "bg-amber-50 text-amber-900",
-    已归档: "bg-slate-100 text-slate-700",
+    对话跟进中: "bg-[hsl(var(--wine-muted)/0.65)] text-[hsl(var(--wine-deep))]",
+    待合规复核: "bg-[hsl(var(--terracotta)/0.12)] text-[hsl(18_28%_32%)]",
+    已归档: "bg-muted text-muted-foreground",
   };
   return (
-    <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", map[q])}>
-      {q}
+    <span
+      className={cn(
+        "inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium leading-tight",
+        map[q]
+      )}
+      title={q}
+    >
+      {QUEUE_SHORT[q]}
     </span>
   );
 }
@@ -109,9 +126,18 @@ function displayNameForConversation(userId: string, fallbackUserName: string) {
 }
 
 function formatRecentListTime(iso: string) {
-  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}:\d{2})/);
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}:\d{2})/);
   if (!m) return iso;
   return `${m[2]}-${m[3]} ${m[4]}`;
+}
+
+function displayProjectName(projectId: string, fallback: string) {
+  const p = ALL_PROJECTS.find((x) => x.id === projectId);
+  return p?.name ?? fallback;
+}
+
+function isExcludedProject(projectId: string, projectName: string) {
+  return /测试新建|test/i.test(projectId) || /测试新建/.test(projectName);
 }
 
 function snippetPlain(s: string, max = 44) {
@@ -160,26 +186,34 @@ export function ConversationsPage() {
   );
 
   const stats = useMemo(() => {
-    const today = "2026-04-14";
-    const activeToday = CONVERSATIONS.filter((c) =>
+    const rows = CONVERSATIONS.filter(
+      (c) => !isExcludedProject(c.projectId, c.projectName)
+    );
+    const today = new Date().toISOString().slice(0, 10);
+    const activeToday = rows.filter((c) =>
       c.lastActiveAt.startsWith(today)
     ).length;
-    const msgs = CONVERSATIONS.reduce((s, c) => s + c.messages, 0);
-    const hits = CONVERSATIONS.filter((c) => c.policyHits.length > 0).length;
-    const exported = CONVERSATIONS.filter((c) => c.exported).length;
-    const pending = CONVERSATIONS.filter((c) =>
+    const msgs = rows.reduce((s, c) => s + c.messages, 0);
+    const hits = rows.filter((c) => c.policyHits.length > 0).length;
+    const exported = rows.filter((c) => c.exported).length;
+    const pending = rows.filter((c) =>
       matchConversationView(c, "pending")
     ).length;
-    return { activeToday, msgs, hits, exported, pending };
+    return { activeToday, msgs, hits, exported, pending, total: rows.length };
   }, []);
 
   const filtered = useMemo(() => {
-    let r = [...CONVERSATIONS];
+    let r = CONVERSATIONS.filter(
+      (c) => !isExcludedProject(c.projectId, c.projectName)
+    );
     const q = search.trim().toLowerCase();
     if (q) {
       r = r.filter(
         (c) =>
           c.userName.toLowerCase().includes(q) ||
+          displayProjectName(c.projectId, c.projectName)
+            .toLowerCase()
+            .includes(q) ||
           c.projectName.toLowerCase().includes(q) ||
           c.sessionId.toLowerCase().includes(q) ||
           c.lastSnippet.toLowerCase().includes(q) ||
@@ -187,7 +221,10 @@ export function ConversationsPage() {
       );
     }
     if (projectFilter !== "全部") {
-      r = r.filter((c) => c.projectName === projectFilter);
+      r = r.filter(
+        (c) =>
+          displayProjectName(c.projectId, c.projectName) === projectFilter
+      );
     }
     if (riskFilter !== "全部") {
       r = r.filter((c) => c.risk === riskFilter);
@@ -243,6 +280,7 @@ export function ConversationsPage() {
   const recentList = useMemo(
     () =>
       [...CONVERSATIONS]
+        .filter((c) => !isExcludedProject(c.projectId, c.projectName))
         .sort((a, b) => b.lastActiveAt.localeCompare(a.lastActiveAt))
         .slice(0, 8),
     []
@@ -260,7 +298,8 @@ export function ConversationsPage() {
             对话监控
           </h2>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            分栏视图 + 列表字段 + 详情内「时间线 / 工具与知识引用」形成闭环
+            真实会话快照（{stats.total} 条示例 · 同步于{" "}
+            {CONVERSATIONS_SYNCED_AT}）
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -270,13 +309,6 @@ export function ConversationsPage() {
           >
             <Download className="h-3.5 w-3.5" />
             导出会话样本
-          </button>
-          <button
-            type="button"
-            className="inline-flex items-center gap-1 rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-muted-foreground shadow-sm transition hover:bg-muted/60"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            刷新列表
           </button>
         </div>
       </div>
@@ -298,19 +330,19 @@ export function ConversationsPage() {
           label="待处理队列"
           value={stats.pending}
           sub="合规或风险需跟进"
-          icon={<ShieldAlert className="h-[18px] w-[18px] text-amber-600" />}
+          icon={<ShieldAlert className="h-[18px] w-[18px] text-[hsl(var(--terracotta))]" />}
         />
         <SummaryCard
           label="策略命中会话"
           value={stats.hits}
           sub="至少一条策略提示"
-          icon={<AlertTriangle className="h-[18px] w-[18px] text-orange-600" />}
+          icon={<AlertTriangle className="h-[18px] w-[18px] text-[hsl(var(--terracotta))]" />}
         />
         <SummaryCard
           label="已导出审计包"
           value={stats.exported}
           sub="合规留痕"
-          icon={<CheckCircle2 className="h-[18px] w-[18px] text-emerald-600" />}
+          icon={<CheckCircle2 className="h-[18px] w-[18px] text-[hsl(var(--sage))]" />}
         />
       </div>
 
@@ -341,7 +373,7 @@ export function ConversationsPage() {
                   <div className="min-w-0 flex-1">
                     <div className="font-medium text-foreground">{name}</div>
                     <div className="truncate text-[11px] text-muted-foreground/85">
-                      {c.userOrg}
+                      {conversationUserOrganization(c.userId)}
                     </div>
                     <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
                       {snippetPlain(c.lastSnippet)}
@@ -354,7 +386,7 @@ export function ConversationsPage() {
                     <div className="flex items-center gap-1">
                       {attention ? (
                         <AlertCircle
-                          className="h-3.5 w-3.5 text-amber-500"
+                          className="h-3.5 w-3.5 text-[hsl(var(--terracotta))]"
                           aria-hidden
                         />
                       ) : null}
@@ -391,14 +423,26 @@ export function ConversationsPage() {
                     </h4>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {formatRecentListTime(recentSel.lastActiveAt)} ·{" "}
-                      {recentSel.projectName} · {recentSel.channel}
+                      {displayProjectName(
+                        recentSel.projectId,
+                        recentSel.projectName
+                      )}{" "}
+                      · {recentSel.channel}
                     </p>
                     <p className="mt-1 font-mono text-[11px] text-muted-foreground/90">
-                      {recentSel.sessionId} · {recentSel.userOrg}
+                      {recentSel.sessionId} ·{" "}
+                      {conversationUserOrganization(recentSel.userId)} ·{" "}
+                      {conversationTierForProject(
+                        recentSel.userId,
+                        displayProjectName(
+                          recentSel.projectId,
+                          recentSel.projectName
+                        )
+                      )}
                     </p>
                   </div>
                   {conversationNeedsAttention(recentSel) ? (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-200/90 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-900">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[hsl(var(--terracotta)/0.35)] bg-[hsl(var(--terracotta)/0.12)] px-2.5 py-0.5 text-xs font-medium text-[hsl(18_28%_32%)]">
                       <AlertCircle className="h-3.5 w-3.5" />
                       需关注
                     </span>
@@ -542,31 +586,51 @@ export function ConversationsPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1280px] text-sm">
+          <table className="w-full min-w-[1180px] table-fixed text-sm">
+            <colgroup>
+              <col className="w-[13%]" />
+              <col className="w-[14%]" />
+              <col className="w-[9%]" />
+              <col className="w-[7%]" />
+              <col className="w-[11%]" />
+              <col className="w-[6%]" />
+              <col className="w-[17%]" />
+              <col className="w-[5%]" />
+              <col className="w-[5%]" />
+              <col className="w-[6%]" />
+              <col className="w-[7%]" />
+            </colgroup>
             <thead>
               <tr className="border-b border-border/80">
                 {(
                   [
-                    ["sessionId", "会话"],
-                    ["projectName", "项目"],
-                    ["userName", "用户"],
-                    ["lifecycleQueue", "队列"],
-                    ["roleTier", "档位"],
-                    ["risk", "风险"],
-                    ["policyHits", "策略命中"],
-                    ["kbCitations", "知识引用"],
-                    ["messages", "消息"],
-                    ["tokensEst", "Token(估)"],
-                    ["lastActiveAt", "最后活跃"],
-                    ["exported", "审计导出"],
+                    ["sessionId", "会话", "left"],
+                    ["projectName", "项目", "left"],
+                    ["userName", "用户", "left"],
+                    ["lifecycleQueue", "队列", "left"],
+                    ["roleTier", "档位", "left"],
+                    ["risk", "风险", "left"],
+                    ["policyHits", "策略命中", "left"],
+                    ["kbCitations", "知识", "right"],
+                    ["messages", "消息", "right"],
+                    ["tokensEst", "Token", "right"],
+                    ["lastActiveAt", "最后活跃", "right"],
                   ] as const
-                ).map(([key, label]) => (
+                ).map(([key, label, align]) => (
                   <th
                     key={key}
-                    className="cursor-pointer select-none px-2 py-2.5 text-left text-xs font-semibold text-muted-foreground hover:text-foreground"
+                    className={cn(
+                      "cursor-pointer select-none px-2 py-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground",
+                      align === "right" ? "text-right" : "text-left"
+                    )}
                     onClick={() => toggleSort(key)}
                   >
-                    <span className="inline-flex items-center gap-1">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1",
+                        align === "right" && "justify-end"
+                      )}
+                    >
                       {label}
                       {sortCol === key &&
                         (sortDir === "asc" ? (
@@ -592,30 +656,54 @@ export function ConversationsPage() {
                     setSelected((s) => (s === c.id ? null : c.id))
                   }
                 >
-                  <td className="px-2 py-2.5 font-mono text-xs text-foreground">
-                    {c.sessionId}
+                  <td
+                    className="px-2 py-2.5 font-mono text-xs text-foreground"
+                    title={c.sessionId}
+                  >
+                    <span className="block truncate">{c.sessionId}</span>
                   </td>
-                  <td className="max-w-[180px] truncate px-2 py-2.5 text-muted-foreground">
-                    {c.projectName}
+                  <td className="px-2 py-2.5 text-muted-foreground">
+                    {(() => {
+                      const name = displayProjectName(
+                        c.projectId,
+                        c.projectName
+                      );
+                      return (
+                        <span
+                          className="line-clamp-2 text-xs leading-snug"
+                          title={name}
+                        >
+                          {name}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="px-2 py-2.5">
                     <div className="font-medium text-foreground">{c.userName}</div>
                     <div className="text-xs text-muted-foreground">
-                      {c.userOrg}
+                      {conversationUserOrganization(c.userId)}
                     </div>
                   </td>
                   <td className="px-2 py-2.5">
                     <QueueBadge q={c.lifecycleQueue} />
                   </td>
                   <td className="px-2 py-2.5">
-                    <TierBadge t={c.roleTier} />
+                    <TierBadge
+                      t={conversationTierForProject(
+                        c.userId,
+                        displayProjectName(c.projectId, c.projectName)
+                      )}
+                    />
                   </td>
                   <td className="px-2 py-2.5">
                     <RiskBadge risk={c.risk} />
                   </td>
-                  <td className="max-w-[200px] px-2 py-2.5 text-xs text-muted-foreground">
+                  <td className="px-2 py-2.5 text-xs text-muted-foreground">
                     {c.policyHits.length ? (
-                      <span className="text-amber-800">
+                      <span
+                        className="line-clamp-2 text-[hsl(18_28%_32%)]"
+                        title={c.policyHits.join("；")}
+                      >
                         {c.policyHits.join("；")}
                       </span>
                     ) : (
@@ -629,24 +717,19 @@ export function ConversationsPage() {
                     {c.messages}
                   </td>
                   <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground">
-                    {c.tokensEst.toLocaleString()}
+                    {c.tokensEst >= 1000
+                      ? `${(c.tokensEst / 1000).toFixed(1)}k`
+                      : c.tokensEst}
                   </td>
-                  <td className="whitespace-nowrap px-2 py-2.5 text-xs text-muted-foreground">
-                    {c.lastActiveAt}
-                  </td>
-                  <td className="px-2 py-2.5 text-center">
-                    {c.exported ? (
-                      <CheckCircle2 className="mx-auto h-4 w-4 text-emerald-600" />
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
+                  <td className="whitespace-nowrap px-2 py-2.5 text-right text-xs tabular-nums text-muted-foreground">
+                    {formatRecentListTime(c.lastActiveAt)}
                   </td>
                 </tr>
               ))}
               {filtered.length === 0 && (
                 <tr>
                   <td
-                    colSpan={12}
+                    colSpan={11}
                     className="py-12 text-center text-muted-foreground"
                   >
                     无匹配会话
@@ -709,7 +792,7 @@ export function ConversationsPage() {
                 className={cn(
                   "rounded-lg border px-3 py-2",
                   x.ok
-                    ? "border-emerald-200/80 bg-emerald-50/50"
+                    ? "border-[hsl(var(--sage)/0.35)] bg-[hsl(var(--sage)/0.08)]"
                     : "border-border/80 bg-muted/30"
                 )}
               >
@@ -721,7 +804,10 @@ export function ConversationsPage() {
 
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {[
-              { k: "项目", v: sel.projectName },
+              {
+                k: "项目",
+                v: displayProjectName(sel.projectId, sel.projectName),
+              },
               { k: "用户", v: `${sel.userName} (${sel.userId})` },
               { k: "末轮意图", v: sel.lastIntent },
               { k: "风险", v: sel.risk },
@@ -811,7 +897,7 @@ export function ConversationsPage() {
                     {sel.policyHits.map((h) => (
                       <li
                         key={h}
-                        className="flex gap-2 rounded-lg border border-amber-200/80 bg-amber-50/80 px-3 py-2 text-sm text-amber-950"
+                        className="flex gap-2 rounded-lg border border-[hsl(var(--terracotta)/0.35)] bg-[hsl(var(--terracotta)/0.1)] px-3 py-2 text-sm text-[hsl(18_26%_22%)]"
                       >
                         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                         {h}

@@ -248,8 +248,8 @@ export function FileTree({
         <div className="mb-2 flex items-center gap-2 border-b border-border/40 pb-2.5">
           <div className="flex gap-1.5">
             <div className="h-2.5 w-2.5 rounded-full bg-red-400/90" />
-            <div className="h-2.5 w-2.5 rounded-full bg-amber-400/90" />
-            <div className="h-2.5 w-2.5 rounded-full bg-emerald-500/90" />
+            <div className="h-2.5 w-2.5 rounded-full bg-[hsl(var(--terracotta)/0.9)]" />
+            <div className="h-2.5 w-2.5 rounded-full bg-[hsl(var(--sage)/0.9)]" />
           </div>
           <span className="ml-1 text-xs text-muted-foreground">{title}</span>
         </div>
