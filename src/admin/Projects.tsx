@@ -19,7 +19,7 @@ import {
   X,
 } from "lucide-react";
 import type { WorkspaceProject } from "@/data/platform";
-import { ALL_PROJECTS } from "@/data/platform";
+import { useAdminData } from "@/context/AdminDataContext";
 import {
   getRelatedDocumentsForProject,
   type DocParseStatus,
@@ -231,6 +231,7 @@ function TypeIcon({ category }: { category: string }) {
 }
 
 export function ProjectsPage() {
+  const { projects: allProjects } = useAdminData();
   const [search, setSearch] = useState("");
   const [cat, setCat] = useState("全部");
   const [phaseFilter, setPhaseFilter] = useState("全部");
@@ -239,9 +240,9 @@ export function ProjectsPage() {
   const [selected, setSelected] = useState<string | null>(null);
 
   const categories = useMemo(() => {
-    const s = new Set(ALL_PROJECTS.map((p) => p.category));
+    const s = new Set(allProjects.map((p) => p.category));
     return ["全部", ...Array.from(s).sort()];
-  }, []);
+  }, [allProjects]);
 
   const phases = [
     "全部",
@@ -252,7 +253,7 @@ export function ProjectsPage() {
   ] as const;
 
   const filtered = useMemo(() => {
-    let r = [...ALL_PROJECTS];
+    let r = [...allProjects];
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       r = r.filter(
@@ -275,7 +276,7 @@ export function ProjectsPage() {
       return 0;
     });
     return r;
-  }, [search, cat, phaseFilter, sortCol, sortDir]);
+  }, [search, cat, phaseFilter, sortCol, sortDir, allProjects]);
 
   const toggleSort = (col: keyof WorkspaceProject) => {
     if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -285,7 +286,7 @@ export function ProjectsPage() {
     }
   };
 
-  const sel = selected ? ALL_PROJECTS.find((p) => p.id === selected) : null;
+  const sel = selected ? allProjects.find((p) => p.id === selected) : null;
 
   return (
     <div className="space-y-4">
@@ -295,7 +296,7 @@ export function ProjectsPage() {
             在管项目
           </h2>
           <span className="rounded-full bg-primary/12 px-2 py-0.5 text-xs font-semibold text-primary">
-            {ALL_PROJECTS.length} 项
+            {allProjects.length} 项
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">

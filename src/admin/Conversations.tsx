@@ -19,11 +19,7 @@ import {
   Wrench,
   X,
 } from "lucide-react";
-import { ALL_PROJECTS, WORKSPACE_USERS, conversationTierForProject, conversationUserOrganization } from "@/data/platform";
-import {
-  CONVERSATIONS,
-  CONVERSATIONS_SYNCED_AT,
-} from "@/data/conversations";
+import { useAdminData } from "@/context/AdminDataContext";
 import {
   matchConversationView,
   type ConversationRow,
@@ -120,9 +116,21 @@ function SummaryCard({
 }
 
 /** 与「账号与权限」工作台用户表一致；无匹配时回退到会话行内的 userName */
-function displayNameForConversation(userId: string, fallbackUserName: string) {
-  const u = WORKSPACE_USERS.find((x) => x.id === userId);
+function displayNameForConversation(
+  userId: string,
+  fallbackUserName: string,
+  users: { id: string; displayName: string; organization: string }[],
+) {
+  const u = users.find((x) => x.id === userId);
   return u?.displayName ?? fallbackUserName;
+}
+
+function userOrganization(
+  userId: string,
+  users: { id: string; organization: string }[],
+) {
+  const u = users.find((x) => x.id === userId);
+  return u?.organization ?? "—";
 }
 
 function formatRecentListTime(iso: string) {
@@ -131,8 +139,12 @@ function formatRecentListTime(iso: string) {
   return `${m[2]}-${m[3]} ${m[4]}`;
 }
 
-function displayProjectName(projectId: string, fallback: string) {
-  const p = ALL_PROJECTS.find((x) => x.id === projectId);
+function displayProjectName(
+  projectId: string,
+  fallback: string,
+  projects: { id: string; name: string }[],
+) {
+  const p = projects.find((x) => x.id === projectId);
   return p?.name ?? fallback;
 }
 
@@ -165,6 +177,8 @@ const VIEW_TABS: { id: ViewTab; label: string; hint: string }[] = [
 ];
 
 export function ConversationsPage() {
+  const { conversations: conversationRows, projects, users, syncedAt, loading } =
+    useAdminData();
   const [search, setSearch] = useState("");
   const [projectFilter, setProjectFilter] = useState("全部");
   const [riskFilter, setRiskFilter] = useState<"全部" | RiskLevel>("全部");
@@ -181,13 +195,13 @@ export function ConversationsPage() {
   const [recentSelectedId, setRecentSelectedId] = useState<string | null>(null);
 
   const projectNames = useMemo(
-    () => ["全部", ...ALL_PROJECTS.map((p) => p.name)],
-    []
+    () => ["全部", ...projects.map((p) => p.name)],
+    [projects],
   );
 
   const stats = useMemo(() => {
-    const rows = CONVERSATIONS.filter(
-      (c) => !isExcludedProject(c.projectId, c.projectName)
+    const rows = conversationRows.filter(
+      (c) => !isExcludedProject(c.projectId, c.projectName),
     );
     const today = new Date().toISOString().slice(0, 10);
     const activeToday = rows.filter((c) =>
@@ -200,18 +214,18 @@ export function ConversationsPage() {
       matchConversationView(c, "pending")
     ).length;
     return { activeToday, msgs, hits, exported, pending, total: rows.length };
-  }, []);
+  }, [conversationRows]);
 
   const filtered = useMemo(() => {
-    let r = CONVERSATIONS.filter(
-      (c) => !isExcludedProject(c.projectId, c.projectName)
+    let r = conversationRows.filter(
+      (c) => !isExcludedProject(c.projectId, c.projectName),
     );
     const q = search.trim().toLowerCase();
     if (q) {
       r = r.filter(
         (c) =>
           c.userName.toLowerCase().includes(q) ||
-          displayProjectName(c.projectId, c.projectName)
+          displayProjectName(c.projectId, c.projectName, projects)
             .toLowerCase()
             .includes(q) ||
           c.projectName.toLowerCase().includes(q) ||
@@ -223,7 +237,7 @@ export function ConversationsPage() {
     if (projectFilter !== "全部") {
       r = r.filter(
         (c) =>
-          displayProjectName(c.projectId, c.projectName) === projectFilter
+          displayProjectName(c.projectId, c.projectName, projects) === projectFilter
       );
     }
     if (riskFilter !== "全部") {
@@ -263,6 +277,8 @@ export function ConversationsPage() {
     viewTab,
     sortCol,
     sortDir,
+    conversationRows,
+    projects,
   ]);
 
   const toggleSort = (col: keyof ConversationRow | "policyHits") => {
@@ -274,20 +290,20 @@ export function ConversationsPage() {
   };
 
   const sel = selected
-    ? CONVERSATIONS.find((c) => c.id === selected)
+    ? conversationRows.find((c) => c.id === selected)
     : null;
 
   const recentList = useMemo(
     () =>
-      [...CONVERSATIONS]
+      [...conversationRows]
         .filter((c) => !isExcludedProject(c.projectId, c.projectName))
         .sort((a, b) => b.lastActiveAt.localeCompare(a.lastActiveAt))
         .slice(0, 8),
-    []
+    [conversationRows],
   );
 
   const recentSel = recentSelectedId
-    ? CONVERSATIONS.find((c) => c.id === recentSelectedId)
+    ? conversationRows.find((c) => c.id === recentSelectedId)
     : null;
 
   return (
@@ -299,7 +315,12 @@ export function ConversationsPage() {
           </h2>
           <p className="mt-0.5 text-sm text-muted-foreground">
             真实会话快照（{stats.total} 条示例 · 同步于{" "}
-            {CONVERSATIONS_SYNCED_AT}）
+            {syncedAt
+              ? new Date(syncedAt).toLocaleString("zh-CN")
+              : loading
+                ? "加载中…"
+                : "—"}
+            ）
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -353,7 +374,7 @@ export function ConversationsPage() {
           </h3>
           <div className="flex max-h-[min(400px,52vh)] flex-col overflow-y-auto rounded-lg border border-border/60 bg-muted/20">
             {recentList.map((c) => {
-              const name = displayNameForConversation(c.userId, c.userName);
+              const name = displayNameForConversation(c.userId, c.userName, users);
               const active = recentSelectedId === c.id;
               const attention = conversationNeedsAttention(c);
               return (
@@ -373,7 +394,7 @@ export function ConversationsPage() {
                   <div className="min-w-0 flex-1">
                     <div className="font-medium text-foreground">{name}</div>
                     <div className="truncate text-[11px] text-muted-foreground/85">
-                      {conversationUserOrganization(c.userId)}
+                      {userOrganization(c.userId, users)}
                     </div>
                     <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
                       {snippetPlain(c.lastSnippet)}
@@ -417,7 +438,8 @@ export function ConversationsPage() {
                     <h4 className="font-display text-base font-semibold text-foreground">
                       {displayNameForConversation(
                         recentSel.userId,
-                        recentSel.userName
+                        recentSel.userName,
+                        users,
                       )}{" "}
                       的对话
                     </h4>
@@ -425,20 +447,15 @@ export function ConversationsPage() {
                       {formatRecentListTime(recentSel.lastActiveAt)} ·{" "}
                       {displayProjectName(
                         recentSel.projectId,
-                        recentSel.projectName
+                        recentSel.projectName,
+                        projects,
                       )}{" "}
                       · {recentSel.channel}
                     </p>
                     <p className="mt-1 font-mono text-[11px] text-muted-foreground/90">
                       {recentSel.sessionId} ·{" "}
-                      {conversationUserOrganization(recentSel.userId)} ·{" "}
-                      {conversationTierForProject(
-                        recentSel.userId,
-                        displayProjectName(
-                          recentSel.projectId,
-                          recentSel.projectName
-                        )
-                      )}
+                      {userOrganization(recentSel.userId, users)} ·{" "}
+                      {recentSel.roleTier}
                     </p>
                   </div>
                   {conversationNeedsAttention(recentSel) ? (
@@ -666,7 +683,8 @@ export function ConversationsPage() {
                     {(() => {
                       const name = displayProjectName(
                         c.projectId,
-                        c.projectName
+                        c.projectName,
+                        projects,
                       );
                       return (
                         <span
@@ -681,19 +699,14 @@ export function ConversationsPage() {
                   <td className="px-2 py-2.5">
                     <div className="font-medium text-foreground">{c.userName}</div>
                     <div className="text-xs text-muted-foreground">
-                      {conversationUserOrganization(c.userId)}
+                      {userOrganization(c.userId, users)}
                     </div>
                   </td>
                   <td className="px-2 py-2.5">
                     <QueueBadge q={c.lifecycleQueue} />
                   </td>
                   <td className="px-2 py-2.5">
-                    <TierBadge
-                      t={conversationTierForProject(
-                        c.userId,
-                        displayProjectName(c.projectId, c.projectName)
-                      )}
-                    />
+                    <TierBadge t={c.roleTier} />
                   </td>
                   <td className="px-2 py-2.5">
                     <RiskBadge risk={c.risk} />
@@ -806,7 +819,7 @@ export function ConversationsPage() {
             {[
               {
                 k: "项目",
-                v: displayProjectName(sel.projectId, sel.projectName),
+                v: displayProjectName(sel.projectId, sel.projectName, projects),
               },
               { k: "用户", v: `${sel.userName} (${sel.userId})` },
               { k: "末轮意图", v: sel.lastIntent },

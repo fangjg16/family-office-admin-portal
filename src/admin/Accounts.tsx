@@ -11,11 +11,10 @@ import {
 } from "lucide-react";
 import {
   permissionTableCell,
-  USER_PROJECT_ACCESS,
-  WORKSPACE_USERS,
   type AccountStatus,
   type WorkspaceUser,
 } from "@/data/platform";
+import { useAdminData } from "@/context/AdminDataContext";
 import { cn } from "@/lib/utils";
 
 const AVATAR_RING: Record<string, string> = {
@@ -35,12 +34,13 @@ function statusBadgeClass(s: AccountStatus) {
 
 function UserDetailModal({
   user,
+  projectRows,
   onClose,
 }: {
   user: WorkspaceUser;
+  projectRows: { projectName: string; accessLabel: string }[];
   onClose: () => void;
 }) {
-  const projectRows = USER_PROJECT_ACCESS[user.id] ?? [];
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -210,6 +210,7 @@ function AddUserPlaceholderModal({ onClose }: { onClose: () => void }) {
 }
 
 export function AccountsPage() {
+  const { users: workspaceUsers, userProjectAccess, loading } = useAdminData();
   const [detailUser, setDetailUser] = useState<WorkspaceUser | null>(null);
   const [addUserOpen, setAddUserOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -217,17 +218,17 @@ export function AccountsPage() {
 
   const filteredUsers = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return WORKSPACE_USERS;
-    return WORKSPACE_USERS.filter(
+    if (!q) return workspaceUsers;
+    return workspaceUsers.filter(
       (u) =>
         u.displayName.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q)
     );
-  }, [query]);
+  }, [query, workspaceUsers]);
 
   const countLabel = query.trim()
     ? `${filteredUsers.length} 条匹配`
-    : `${WORKSPACE_USERS.length} 个账号`;
+    : `${workspaceUsers.length} 个账号`;
 
   return (
     <div className="space-y-4">
@@ -277,6 +278,9 @@ export function AccountsPage() {
           </div>
         </div>
         <div className="overflow-x-auto">
+          {loading && workspaceUsers.length === 0 ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">加载账号数据…</div>
+          ) : (
           <table className="w-full min-w-[1040px] text-sm">
             <thead>
               <tr className="border-b border-border/80">
@@ -385,11 +389,16 @@ export function AccountsPage() {
               )}
             </tbody>
           </table>
+          )}
         </div>
       </div>
 
       {detailUser && (
-        <UserDetailModal user={detailUser} onClose={closeDetail} />
+        <UserDetailModal
+          user={detailUser}
+          projectRows={userProjectAccess[detailUser.id] ?? []}
+          onClose={closeDetail}
+        />
       )}
       {addUserOpen && (
         <AddUserPlaceholderModal onClose={() => setAddUserOpen(false)} />

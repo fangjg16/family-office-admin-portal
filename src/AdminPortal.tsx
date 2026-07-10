@@ -6,8 +6,10 @@ import {
   Coins,
   Database,
   LayoutDashboard,
+  LogOut,
   Menu,
   MessageSquare,
+  RefreshCw,
   Settings,
   Users,
 } from "lucide-react";
@@ -19,6 +21,8 @@ import { OverviewPage } from "@/admin/Overview";
 import { SettingsPage } from "@/admin/Settings";
 import { ProjectsPage } from "@/admin/Projects";
 import { TokensPage } from "@/admin/Tokens";
+import { useAdminData } from "@/context/AdminDataContext";
+import { clearAdminSession } from "@/lib/admin-session";
 import { cn } from "@/lib/utils";
 
 type PageId =
@@ -60,9 +64,15 @@ const navGroups: {
   { label: "配置", ids: ["settings"] },
 ];
 
-export default function AdminPortal() {
+export default function AdminPortal({ onLogout }: { onLogout: () => void }) {
   const [page, setPage] = useState<PageId>("overview");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { loading, error, syncedAt, refresh } = useAdminData();
+
+  const handleLogout = () => {
+    clearAdminSession();
+    onLogout();
+  };
 
   const renderPage = () => {
     switch (page) {
@@ -170,12 +180,18 @@ export default function AdminPortal() {
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[hsl(var(--wine-deep))] to-[hsl(var(--wine))] text-xs font-bold text-white shadow-sm">
                 A
               </div>
-              <div className="min-w-0 text-xs">
-                <div className="truncate font-semibold text-foreground">
-                  超级管理员
-                </div>
-                <div className="truncate text-muted-foreground">合域后台</div>
+              <div className="min-w-0 flex-1 text-xs">
+                <div className="truncate font-semibold text-foreground">管理员</div>
+                <div className="truncate text-muted-foreground">已连接云端</div>
               </div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                title="退出登录"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
             </div>
           </div>
         )}
@@ -187,10 +203,30 @@ export default function AdminPortal() {
             {navItems.find((n) => n.id === page)?.label ?? "概览"}
           </h1>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <span className="text-xs">2026-04-14</span>
+            {syncedAt && (
+              <span className="hidden text-xs sm:inline">
+                同步 {new Date(syncedAt).toLocaleString("zh-CN")}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => void refresh()}
+              disabled={loading}
+              className="inline-flex items-center gap-1 rounded-lg border border-border/70 bg-white px-2 py-1 text-xs transition hover:bg-muted/60 disabled:opacity-50"
+              title="刷新数据"
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+              刷新
+            </button>
             <span className="inline-flex items-center gap-1.5 text-xs">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-[hsl(var(--sage))]" />
-              系统正常
+              <span
+                className={cn(
+                  "h-2 w-2 rounded-full",
+                  error ? "bg-red-500" : loading ? "bg-amber-400" : "bg-[hsl(var(--sage))]",
+                  !error && !loading && "animate-pulse",
+                )}
+              />
+              {error ? "连接异常" : loading ? "加载中" : "已连接"}
             </span>
           </div>
         </header>
@@ -202,6 +238,11 @@ export default function AdminPortal() {
               : "max-w-screen-xl py-6 pl-6 pr-10 md:pl-8 md:pr-14 lg:pr-16 xl:pr-20"
           )}
         >
+          {error && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+              {error}
+            </div>
+          )}
           {renderPage()}
         </div>
       </main>
