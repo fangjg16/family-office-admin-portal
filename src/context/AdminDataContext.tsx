@@ -13,6 +13,8 @@ import {
   type ApiConversation,
   type ApiOverviewStats,
   type ApiProject,
+  type ApiKnowledgeCatalog,
+  type ApiAgentsCatalog,
   type ApiProjectCognition,
   type ApiProjectDocuments,
   type ApiProjectStats,
@@ -48,6 +50,25 @@ const EMPTY_TOKEN_USAGE: ApiTokenUsageStats = {
   byRoleGroup: [],
 };
 
+const EMPTY_KNOWLEDGE: ApiKnowledgeCatalog = {
+  documents: [],
+  knowledgeNetworks: [],
+  summary: {
+    documentCount: 0,
+    parsedCount: 0,
+    pendingEmbedCount: 0,
+    knowledgeNetworkCount: 0,
+    embedModel: "text-embedding-v4",
+    embedDimension: 1024,
+  },
+};
+
+const EMPTY_AGENTS: ApiAgentsCatalog = {
+  skills: [],
+  recentJobs: [],
+  permissionRules: [],
+};
+
 type AdminDataContextValue = {
   loading: boolean;
   error: string | null;
@@ -63,6 +84,8 @@ type AdminDataContextValue = {
   projectCognition: Record<string, ApiProjectCognition>;
   activeUserDaily: ApiActiveUserDailyRow[];
   projectStats: Record<string, ApiProjectStats>;
+  knowledgeCatalog: ApiKnowledgeCatalog;
+  agentsCatalog: ApiAgentsCatalog;
   refresh: () => Promise<void>;
   updateProjectCognition: (projectId: string, entry: ApiProjectCognition) => void;
 };
@@ -145,6 +168,9 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
   const [projectStats, setProjectStats] = useState<Record<string, ApiProjectStats>>(
     {},
   );
+  const [knowledgeCatalog, setKnowledgeCatalog] =
+    useState<ApiKnowledgeCatalog>(EMPTY_KNOWLEDGE);
+  const [agentsCatalog, setAgentsCatalog] = useState<ApiAgentsCatalog>(EMPTY_AGENTS);
 
   const updateProjectCognition = useCallback(
     (projectId: string, entry: ApiProjectCognition) => {
@@ -171,6 +197,8 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
       setProjectCognition(data.projectCognition ?? {});
       setActiveUserDaily(data.activeUserDaily ?? []);
       setProjectStats(data.projectStats ?? {});
+      setKnowledgeCatalog(data.knowledgeCatalog ?? EMPTY_KNOWLEDGE);
+      setAgentsCatalog(data.agentsCatalog ?? EMPTY_AGENTS);
     } catch (err) {
       setError(err instanceof Error ? err.message : "加载失败");
     } finally {
@@ -198,6 +226,8 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
       projectCognition,
       activeUserDaily,
       projectStats,
+      knowledgeCatalog,
+      agentsCatalog,
       refresh,
       updateProjectCognition,
     }),
@@ -216,6 +246,8 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
       projectCognition,
       activeUserDaily,
       projectStats,
+      knowledgeCatalog,
+      agentsCatalog,
       refresh,
       updateProjectCognition,
     ],

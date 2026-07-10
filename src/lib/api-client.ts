@@ -210,6 +210,85 @@ export type ApiProjectStats = {
   riskLevel: "低" | "中" | "中高" | "高";
 };
 
+export type ApiKnowledgeDocument = {
+  id: string;
+  projectId: string;
+  projectName: string;
+  filename: string;
+  scope: "package" | "session";
+  folderLabel: string;
+  conversationId: string | null;
+  uploadedAt: string;
+  uploadedBy: string | null;
+  uploadedByName: string | null;
+  parseStatus: "已解析" | "解析中" | "待嵌入";
+  chunkCount: number;
+  embeddedCount: number;
+};
+
+export type ApiKnowledgeNetworkRow = {
+  projectId: string;
+  projectName: string;
+  version: number;
+  versionLabel: string | null;
+  updatedAt: string;
+  updatedBy: string;
+  updatedByName: string;
+  lastJobId: string | null;
+  changelog: string | null;
+};
+
+export type ApiKnowledgeSummary = {
+  documentCount: number;
+  parsedCount: number;
+  pendingEmbedCount: number;
+  knowledgeNetworkCount: number;
+  embedModel: string;
+  embedDimension: number;
+};
+
+export type ApiKnowledgeCatalog = {
+  documents: ApiKnowledgeDocument[];
+  knowledgeNetworks: ApiKnowledgeNetworkRow[];
+  summary: ApiKnowledgeSummary;
+};
+
+export type ApiSkillCatalogRow = {
+  id: string;
+  label: string;
+  route: "快答" | "Hermes 深度任务";
+  triggerHint: string;
+  summary: string;
+};
+
+export type ApiAgentJobRow = {
+  id: string;
+  projectId: string;
+  projectName: string;
+  userId: string;
+  userName: string;
+  conversationId: string | null;
+  skillIntent: string;
+  skillLabel: string;
+  status: string;
+  hasKnowledgeNetwork: boolean;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ApiPermissionRuleRow = {
+  role: string;
+  label: string;
+  capabilities: string[];
+};
+
+export type ApiAgentsCatalog = {
+  skills: ApiSkillCatalogRow[];
+  recentJobs: ApiAgentJobRow[];
+  permissionRules: ApiPermissionRuleRow[];
+};
+
 export type BootstrapPayload = {
   ok: boolean;
   syncedAt: string;
@@ -223,6 +302,8 @@ export type BootstrapPayload = {
   projectCognition?: Record<string, ApiProjectCognition>;
   activeUserDaily?: ApiActiveUserDailyRow[];
   projectStats?: Record<string, ApiProjectStats>;
+  knowledgeCatalog?: ApiKnowledgeCatalog;
+  agentsCatalog?: ApiAgentsCatalog;
   counts: {
     projects: number;
     users: number;
