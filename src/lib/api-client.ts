@@ -196,6 +196,20 @@ export type ApiProjectCognition = {
   model: string | null;
 };
 
+export type ApiActiveUserDailyRow = {
+  date: string;
+  activeUsers: number;
+  conversations: number;
+};
+
+export type ApiProjectStats = {
+  documentCount: number;
+  conversationCount: number;
+  participantCount: number;
+  tokenTotal: number;
+  riskLevel: "低" | "中" | "中高" | "高";
+};
+
 export type BootstrapPayload = {
   ok: boolean;
   syncedAt: string;
@@ -207,6 +221,8 @@ export type BootstrapPayload = {
   overview: ApiOverviewStats;
   tokenUsage?: ApiTokenUsageStats;
   projectCognition?: Record<string, ApiProjectCognition>;
+  activeUserDaily?: ApiActiveUserDailyRow[];
+  projectStats?: Record<string, ApiProjectStats>;
   counts: {
     projects: number;
     users: number;

@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { useAdminData } from "@/context/AdminDataContext";
 import { ActiveUsersLineChart, TokenAreaChart } from "@/admin/charts";
-import { buildActiveUserDailyData } from "@/admin/mockToken";
 import { cn } from "@/lib/utils";
 
 const ACTIVE_TREND_DAYS = 14;
@@ -171,9 +170,12 @@ function ChartCard({
 }
 
 export function OverviewPage() {
-  const { overview, tokenUsage } = useAdminData();
+  const { overview, tokenUsage, activeUserDaily } = useAdminData();
   const tokenDailyData = tokenUsage.daily.slice(-30);
-  const activeUserDaily = buildActiveUserDailyData(ACTIVE_TREND_DAYS);
+  const activeUserDailyData =
+    activeUserDaily.length > 0
+      ? activeUserDaily
+      : [{ date: "—", activeUsers: 0, conversations: 0 }];
 
   const monthTokens =
     tokenUsage.monthTotalTokens > 0
@@ -280,7 +282,7 @@ export function OverviewPage() {
             icon={<LayoutDashboard className="h-5 w-5" strokeWidth={2} />}
           >
             <ActiveUsersLineChart
-              data={activeUserDaily}
+              data={activeUserDailyData}
               height={BOTTOM_CHART_HEIGHT}
             />
           </ChartCard>

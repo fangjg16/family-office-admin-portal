@@ -15,6 +15,8 @@ import {
   type ApiProject,
   type ApiProjectCognition,
   type ApiProjectDocuments,
+  type ApiProjectStats,
+  type ApiActiveUserDailyRow,
   type ApiTokenUsageStats,
   type ApiUser,
 } from "@/lib/api-client";
@@ -59,6 +61,8 @@ type AdminDataContextValue = {
   overview: ApiOverviewStats;
   tokenUsage: ApiTokenUsageStats;
   projectCognition: Record<string, ApiProjectCognition>;
+  activeUserDaily: ApiActiveUserDailyRow[];
+  projectStats: Record<string, ApiProjectStats>;
   refresh: () => Promise<void>;
   updateProjectCognition: (projectId: string, entry: ApiProjectCognition) => void;
 };
@@ -135,6 +139,12 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
   const [projectCognition, setProjectCognition] = useState<
     Record<string, ApiProjectCognition>
   >({});
+  const [activeUserDaily, setActiveUserDaily] = useState<ApiActiveUserDailyRow[]>(
+    [],
+  );
+  const [projectStats, setProjectStats] = useState<Record<string, ApiProjectStats>>(
+    {},
+  );
 
   const updateProjectCognition = useCallback(
     (projectId: string, entry: ApiProjectCognition) => {
@@ -159,6 +169,8 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
       setOverview(data.overview ?? EMPTY_OVERVIEW);
       setTokenUsage(data.tokenUsage ?? EMPTY_TOKEN_USAGE);
       setProjectCognition(data.projectCognition ?? {});
+      setActiveUserDaily(data.activeUserDaily ?? []);
+      setProjectStats(data.projectStats ?? {});
     } catch (err) {
       setError(err instanceof Error ? err.message : "加载失败");
     } finally {
@@ -184,6 +196,8 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
       overview,
       tokenUsage,
       projectCognition,
+      activeUserDaily,
+      projectStats,
       refresh,
       updateProjectCognition,
     }),
@@ -200,6 +214,8 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
       overview,
       tokenUsage,
       projectCognition,
+      activeUserDaily,
+      projectStats,
       refresh,
       updateProjectCognition,
     ],

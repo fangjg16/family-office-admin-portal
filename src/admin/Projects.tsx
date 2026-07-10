@@ -21,10 +21,7 @@ import type { WorkspaceProject } from "@/data/platform";
 import { useAdminData } from "@/context/AdminDataContext";
 import type { ApiProjectDocuments } from "@/lib/api-client";
 import { generateProjectCognition } from "@/lib/api-client";
-import {
-  PROJECT_OVERVIEW_METRICS_BY_ID,
-  type ProjectRiskLevel,
-} from "@/data/project-overview-metrics";
+import type { ProjectRiskLevel } from "@/data/project-overview-metrics";
 import { cn } from "@/lib/utils";
 
 function parseStatusClass(status: string): string {
@@ -273,7 +270,7 @@ function TypeIcon({ category }: { category: string }) {
 }
 
 export function ProjectsPage() {
-  const { projects: allProjects, projectDocuments } = useAdminData();
+  const { projects: allProjects, projectDocuments, projectStats } = useAdminData();
   const [search, setSearch] = useState("");
   const [cat, setCat] = useState("全部");
   const [phaseFilter, setPhaseFilter] = useState("全部");
@@ -434,13 +431,13 @@ export function ProjectsPage() {
                   </th>
                 ))}
                 <th className="whitespace-nowrap px-2 py-2.5 text-left text-xs font-semibold text-muted-foreground">
-                  规模
+                  文档数
                 </th>
                 <th className="whitespace-nowrap px-2 py-2.5 text-left text-xs font-semibold text-muted-foreground">
-                  净值
+                  对话数
                 </th>
                 <th className="whitespace-nowrap px-2 py-2.5 text-left text-xs font-semibold text-muted-foreground">
-                  起投
+                  参与人
                 </th>
                 <th className="whitespace-nowrap px-2 py-2.5 text-left text-xs font-semibold text-muted-foreground">
                   风险程度
@@ -466,7 +463,7 @@ export function ProjectsPage() {
             </thead>
             <tbody>
               {filtered.map((r) => {
-                const m = PROJECT_OVERVIEW_METRICS_BY_ID[r.id];
+                const stats = projectStats[r.id];
                 return (
                   <tr
                     key={r.id}
@@ -491,23 +488,23 @@ export function ProjectsPage() {
                       <PhaseBadge phase={r.phase} />
                     </td>
                     <td className="whitespace-nowrap px-2 py-2.5 tabular-nums text-muted-foreground">
-                      {m?.scaleLabel ?? "—"}
+                      {stats?.documentCount ?? 0}
                     </td>
                     <td className="whitespace-nowrap px-2 py-2.5 tabular-nums text-muted-foreground">
-                      {m?.netValueLabel ?? "—"}
+                      {stats?.conversationCount ?? 0}
                     </td>
                     <td className="whitespace-nowrap px-2 py-2.5 tabular-nums text-muted-foreground">
-                      {m?.minInvestWanLabel ?? "—"}
+                      {stats?.participantCount ?? 0}
                     </td>
                     <td className="px-2 py-2.5">
-                      {m ? (
+                      {stats ? (
                         <span
                           className={cn(
                             "inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
-                            projectRiskBadgeClass(m.riskLevel)
+                            projectRiskBadgeClass(stats.riskLevel)
                           )}
                         >
-                          {m.riskLevel}
+                          {stats.riskLevel}
                         </span>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
