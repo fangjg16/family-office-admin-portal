@@ -73,8 +73,10 @@ export function TokensPage() {
     totalTokens > 0 ? Math.round((inputTotal / totalTokens) * 100) : 0;
   const outputPct = totalTokens > 0 ? 100 - inputPct : 0;
 
-  const isEstimated =
+  const isEstimatedOnly =
     tokenUsage.estimatedEventCount > 0 && tokenUsage.meteredEventCount === 0;
+  const isMixedUsage =
+    tokenUsage.meteredEventCount > 0 && tokenUsage.estimatedEventCount > 0;
   const familyAgg = tokenUsage.byRoleGroup;
   const denom = familyAgg.reduce((s, x) => s + x.totalTokens, 0) || 1;
 
@@ -85,9 +87,14 @@ export function TokensPage() {
           <h2 className="font-display text-lg font-semibold text-foreground">
             Token 用量监控
           </h2>
-          {isEstimated && (
+          {isEstimatedOnly && (
             <p className="mt-0.5 text-xs text-muted-foreground">
               当前为基于对话字数的估算（尚无精确计量记录）
+            </p>
+          )}
+          {isMixedUsage && (
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              历史对话为估算，新对话已接入 API 精确计量
             </p>
           )}
         </div>
