@@ -9,12 +9,7 @@ import {
   UserCircle2,
   Users,
 } from "lucide-react";
-import {
-  ALL_PROJECTS,
-  TOTAL_PROJECT_COUNT,
-  WORKSPACE_USERS,
-} from "@/data/platform";
-import { KNOWLEDGE_DOCS } from "@/data/knowledge-mock";
+import { useAdminData } from "@/context/AdminDataContext";
 import { ActiveUsersLineChart, TokenAreaChart } from "@/admin/charts";
 import { buildActiveUserDailyData, buildTokenDailyData } from "@/admin/mockToken";
 import { cn } from "@/lib/utils";
@@ -23,23 +18,6 @@ const ACTIVE_TREND_DAYS = 14;
 
 /** 底部「用户 / Token」两列图表统一高度，避免左右白卡片不齐 */
 const BOTTOM_CHART_HEIGHT = 236;
-
-/** 跨项目待办 / 风控问题等汇总（占位） */
-const PENDING_ISSUES_DEMO = 6;
-
-function countByPhase() {
-  let active = 0;
-  let completed = 0;
-  let paused = 0;
-  let cancelled = 0;
-  for (const p of ALL_PROJECTS) {
-    if (p.phase.startsWith("Active")) active += 1;
-    else if (p.phase.startsWith("Completed")) completed += 1;
-    else if (p.phase.startsWith("Paused")) paused += 1;
-    else if (p.phase.startsWith("Cancelled")) cancelled += 1;
-  }
-  return { active, completed, paused, cancelled };
-}
 
 function SectionBlock({
   title,
@@ -193,20 +171,15 @@ function ChartCard({
 }
 
 export function OverviewPage() {
+  const { overview } = useAdminData();
   const tokenDailyData = buildTokenDailyData(30);
   const activeUserDaily = buildActiveUserDailyData(ACTIVE_TREND_DAYS);
-  const todayActiveUsers =
-    activeUserDaily[activeUserDaily.length - 1]?.activeUsers ?? 0;
-  const todayConversations =
-    activeUserDaily[activeUserDaily.length - 1]?.conversations ?? 0;
-
-  const phase = countByPhase();
 
   const monthTokenM = (
     tokenDailyData.reduce((s, d) => s + d.total, 0) / 1_000_000
   ).toFixed(2);
 
-  const knowledgeDocCount = KNOWLEDGE_DOCS.length;
+  const phase = overview.projectsByPhase;
 
   const statusItems = [
     {
@@ -234,24 +207,23 @@ export function OverviewPage() {
   const projectMetrics = [
     {
       label: "在管项目",
-      value: TOTAL_PROJECT_COUNT,
+      value: overview.projectCount,
       cl: "text-[hsl(var(--wine-deep))] bg-[hsl(var(--wine-muted)/0.65)] border-[hsl(var(--wine)/0.28)]",
     },
     {
-      label: "知识库文档",
-      value: knowledgeDocCount,
+      label: "项目文档",
+      value: overview.documentCount,
       cl: "text-[hsl(145_22%_30%)] bg-[hsl(var(--sage)/0.12)] border-[hsl(var(--sage)/0.35)]",
     },
     {
-      label: "待处理问题",
-      value: PENDING_ISSUES_DEMO,
+      label: "待合规复核",
+      value: overview.pendingReviewCount,
       cl: "text-[hsl(18_28%_32%)] bg-[hsl(var(--terracotta)/0.12)] border-[hsl(var(--terracotta)/0.35)]",
     },
   ];
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col gap-6 overflow-y-auto pb-2 md:gap-8 md:pb-4">
-      {/* 上：项目通栏 */}
       <SectionBlock
         title="项目"
         icon={<FolderKanban className="h-5 w-5" strokeWidth={2} />}
@@ -272,7 +244,6 @@ export function OverviewPage() {
         </div>
       </SectionBlock>
 
-      {/* 下：左用户 · 右 Token */}
       <div className="grid min-h-0 w-full min-w-0 grid-cols-1 gap-6 md:gap-8 lg:grid-cols-2 lg:items-stretch lg:gap-10 xl:gap-12">
         <SectionBlock
           className="lg:h-full"
@@ -285,21 +256,21 @@ export function OverviewPage() {
                 <Users className="h-5 w-5 text-primary" strokeWidth={2} />
               }
               label="工作台账号"
-              value={String(WORKSPACE_USERS.length)}
+              value={String(overview.userCount)}
             />
             <SummaryCard
               icon={
                 <UserCircle2 className="h-5 w-5 text-primary" strokeWidth={2} />
               }
               label="今日活跃用户"
-              value={String(todayActiveUsers)}
+              value={String(overview.todayActiveUsers)}
             />
             <SummaryCard
               icon={
                 <MessageCircle className="h-5 w-5 text-primary" strokeWidth={2} />
               }
               label="今日对话数"
-              value={String(todayConversations)}
+              value={String(overview.todayConversations)}
             />
           </div>
           <ChartCard

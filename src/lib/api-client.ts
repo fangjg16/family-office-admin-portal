@@ -105,13 +105,71 @@ export type ApiConversation = {
   turns: { role: "user" | "assistant"; content: string; time: string }[];
 };
 
+export type ApiProjectDocument = {
+  filename: string;
+  parseStatus: "已解析" | "解析中" | "失败";
+  uploadedAt: string;
+  uploadedBy: string | null;
+  uploadedByName: string | null;
+};
+
+export type ApiSessionDocument = ApiProjectDocument & {
+  userId: string;
+  userName: string;
+  conversationId: string;
+};
+
+export type ApiProjectDocuments = {
+  projectDocuments: ApiProjectDocument[];
+  conversationDocuments: ApiSessionDocument[];
+};
+
+export type ApiAuditEntry = {
+  id: string;
+  userId: string;
+  conversationId: string;
+  messageId: string;
+  event: "created" | "deleted";
+  role: "user" | "assistant";
+  contentPreview: string;
+  createdAt: string;
+  source: string;
+};
+
+export type ApiOverviewStats = {
+  projectCount: number;
+  projectsByPhase: {
+    active: number;
+    completed: number;
+    paused: number;
+    cancelled: number;
+  };
+  userCount: number;
+  conversationCount: number;
+  todayActiveUsers: number;
+  todayConversations: number;
+  documentCount: number;
+  auditEventCount: number;
+  auditDeletedCount: number;
+  pendingReviewCount: number;
+};
+
 export type BootstrapPayload = {
   ok: boolean;
   syncedAt: string;
   projects: ApiProject[];
   users: ApiUser[];
   conversations: ApiConversation[];
-  counts: { projects: number; users: number; conversations: number };
+  projectDocuments: Record<string, ApiProjectDocuments>;
+  auditByConversation: Record<string, ApiAuditEntry[]>;
+  overview: ApiOverviewStats;
+  counts: {
+    projects: number;
+    users: number;
+    conversations: number;
+    documents: number;
+    auditEvents: number;
+  };
 };
 
 export async function fetchAdminBootstrap(): Promise<BootstrapPayload> {

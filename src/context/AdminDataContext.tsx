@@ -9,13 +9,29 @@ import {
 } from "react";
 import {
   fetchAdminBootstrap,
+  type ApiAuditEntry,
   type ApiConversation,
+  type ApiOverviewStats,
   type ApiProject,
+  type ApiProjectDocuments,
   type ApiUser,
 } from "@/lib/api-client";
 import { loadAdminToken } from "@/lib/admin-session";
 import type { WorkspaceProject, WorkspaceRole, WorkspaceUser } from "@/data/platform";
 import type { ConversationRow } from "@/data/conversations-mock";
+
+const EMPTY_OVERVIEW: ApiOverviewStats = {
+  projectCount: 0,
+  projectsByPhase: { active: 0, completed: 0, paused: 0, cancelled: 0 },
+  userCount: 0,
+  conversationCount: 0,
+  todayActiveUsers: 0,
+  todayConversations: 0,
+  documentCount: 0,
+  auditEventCount: 0,
+  auditDeletedCount: 0,
+  pendingReviewCount: 0,
+};
 
 type AdminDataContextValue = {
   loading: boolean;
@@ -25,6 +41,9 @@ type AdminDataContextValue = {
   users: WorkspaceUser[];
   userProjectAccess: Record<string, { projectName: string; accessLabel: string }[]>;
   conversations: ConversationRow[];
+  projectDocuments: Record<string, ApiProjectDocuments>;
+  auditByConversation: Record<string, ApiAuditEntry[]>;
+  overview: ApiOverviewStats;
   refresh: () => Promise<void>;
 };
 
@@ -89,6 +108,13 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
     Record<string, { projectName: string; accessLabel: string }[]>
   >({});
   const [conversations, setConversations] = useState<ConversationRow[]>([]);
+  const [projectDocuments, setProjectDocuments] = useState<
+    Record<string, ApiProjectDocuments>
+  >({});
+  const [auditByConversation, setAuditByConversation] = useState<
+    Record<string, ApiAuditEntry[]>
+  >({});
+  const [overview, setOverview] = useState<ApiOverviewStats>(EMPTY_OVERVIEW);
 
   const refresh = useCallback(async () => {
     if (!loadAdminToken()) return;
@@ -101,6 +127,9 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
       setUsers(data.users.map(mapUser));
       setUserProjectAccess(buildUserProjectAccess(data.users));
       setConversations(data.conversations.map(mapConversation));
+      setProjectDocuments(data.projectDocuments ?? {});
+      setAuditByConversation(data.auditByConversation ?? {});
+      setOverview(data.overview ?? EMPTY_OVERVIEW);
     } catch (err) {
       setError(err instanceof Error ? err.message : "加载失败");
     } finally {
@@ -121,9 +150,24 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
       users,
       userProjectAccess,
       conversations,
+      projectDocuments,
+      auditByConversation,
+      overview,
       refresh,
     }),
-    [loading, error, syncedAt, projects, users, userProjectAccess, conversations, refresh],
+    [
+      loading,
+      error,
+      syncedAt,
+      projects,
+      users,
+      userProjectAccess,
+      conversations,
+      projectDocuments,
+      auditByConversation,
+      overview,
+      refresh,
+    ],
   );
 
   return (

@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import {
-  AlertTriangle,
   Bot,
   Briefcase,
   Building2,
@@ -20,17 +19,14 @@ import {
 } from "lucide-react";
 import type { WorkspaceProject } from "@/data/platform";
 import { useAdminData } from "@/context/AdminDataContext";
-import {
-  getRelatedDocumentsForProject,
-  type DocParseStatus,
-} from "@/data/project-related-documents";
+import type { ApiProjectDocuments } from "@/lib/api-client";
 import {
   PROJECT_OVERVIEW_METRICS_BY_ID,
   type ProjectRiskLevel,
 } from "@/data/project-overview-metrics";
 import { cn } from "@/lib/utils";
 
-function parseStatusClass(status: DocParseStatus): string {
+function parseStatusClass(status: string): string {
   if (status === "已解析") return "text-[hsl(145_22%_30%)]";
   if (status === "解析中") return "text-[hsl(18_28%_38%)]";
   return "text-red-600";
@@ -42,7 +38,7 @@ function DocumentRow({
   userName,
 }: {
   filename: string;
-  parseStatus: DocParseStatus;
+  parseStatus: string;
   userName?: string;
 }) {
   if (userName) {
@@ -111,9 +107,8 @@ function AgentCognitionPanel({ project }: { project: WorkspaceProject }) {
   );
 }
 
-function RelatedDocumentsPanel({ projectId }: { projectId: string }) {
-  const { projectDocuments, conversationDocuments } =
-    getRelatedDocumentsForProject(projectId);
+function RelatedDocumentsPanel({ documents }: { documents: ApiProjectDocuments }) {
+  const { projectDocuments, conversationDocuments } = documents;
 
   return (
     <div className="rounded-lg border border-border/70 p-4">
@@ -167,11 +162,6 @@ function RelatedDocumentsPanel({ projectId }: { projectId: string }) {
             <p className="py-2 text-xs text-muted-foreground">暂无</p>
           )}
         </div>
-      </div>
-
-      <div className="mt-3 flex items-center gap-1 border-t border-border/50 pt-3 text-xs text-[hsl(18_28%_32%)]">
-        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-        文档更新频率将同步至工作台对话区展示策略（示意）。
       </div>
     </div>
   );
@@ -231,7 +221,7 @@ function TypeIcon({ category }: { category: string }) {
 }
 
 export function ProjectsPage() {
-  const { projects: allProjects } = useAdminData();
+  const { projects: allProjects, projectDocuments } = useAdminData();
   const [search, setSearch] = useState("");
   const [cat, setCat] = useState("全部");
   const [phaseFilter, setPhaseFilter] = useState("全部");
@@ -532,7 +522,14 @@ export function ProjectsPage() {
 
           <div className="space-y-4">
             <AgentCognitionPanel project={sel} />
-            <RelatedDocumentsPanel projectId={sel.id} />
+            <RelatedDocumentsPanel
+              documents={
+                projectDocuments[sel.id] ?? {
+                  projectDocuments: [],
+                  conversationDocuments: [],
+                }
+              }
+            />
           </div>
         </div>
       )}

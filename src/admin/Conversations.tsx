@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  ClipboardList,
   Download,
   Eye,
   Filter,
@@ -177,8 +178,14 @@ const VIEW_TABS: { id: ViewTab; label: string; hint: string }[] = [
 ];
 
 export function ConversationsPage() {
-  const { conversations: conversationRows, projects, users, syncedAt, loading } =
-    useAdminData();
+  const {
+    conversations: conversationRows,
+    projects,
+    users,
+    syncedAt,
+    loading,
+    auditByConversation,
+  } = useAdminData();
   const [search, setSearch] = useState("");
   const [projectFilter, setProjectFilter] = useState("全部");
   const [riskFilter, setRiskFilter] = useState<"全部" | RiskLevel>("全部");
@@ -305,6 +312,11 @@ export function ConversationsPage() {
   const recentSel = recentSelectedId
     ? conversationRows.find((c) => c.id === recentSelectedId)
     : null;
+
+  const selectedAudit = sel
+    ? auditByConversation[`${sel.userId}::${sel.sessionId}`] ?? []
+    : [];
+  const selectedAuditDeleted = selectedAudit.filter((e) => e.event === "deleted").length;
 
   return (
     <div className="mx-auto max-w-[min(1680px,100%)] space-y-4">
@@ -796,8 +808,11 @@ export function ConversationsPage() {
               },
               {
                 step: "4 审计",
-                ok: sel.exported,
-                text: sel.exported ? "已导出" : "未导出",
+                ok: selectedAudit.length > 0,
+                text:
+                  selectedAudit.length > 0
+                    ? `${selectedAudit.length} 条记录${selectedAuditDeleted > 0 ? ` · 删 ${selectedAuditDeleted}` : ""}`
+                    : "暂无审计记录",
               },
             ].map((x) => (
               <li
@@ -869,6 +884,55 @@ export function ConversationsPage() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div>
+              <h4 className="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
+                <ClipboardList className="h-4 w-4 text-primary" />
+                审计记录
+                {selectedAudit.length > 0 && (
+                  <span className="text-xs font-normal text-muted-foreground">
+                    （云端 chat_message_audit_log）
+                  </span>
+                )}
+              </h4>
+              {selectedAudit.length === 0 ? (
+                <p className="rounded-lg border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+                  本会话暂无审计事件（消息创建/删除会写入审计表）。
+                </p>
+              ) : (
+                <ul className="max-h-[280px] space-y-2 overflow-y-auto rounded-lg border border-border/70 bg-muted/15 p-3">
+                  {selectedAudit.map((entry) => (
+                    <li
+                      key={entry.id}
+                      className="rounded-lg border border-border/60 bg-white px-3 py-2.5 text-sm"
+                    >
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
+                        <span
+                          className={cn(
+                            "rounded-full px-2 py-0.5 font-semibold",
+                            entry.event === "deleted"
+                              ? "bg-red-50 text-red-700"
+                              : "bg-[hsl(var(--sage)/0.12)] text-[hsl(145_22%_30%)]",
+                          )}
+                        >
+                          {entry.event === "deleted" ? "删除" : "创建"}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {entry.role === "assistant" ? "助手" : "用户"}
+                        </span>
+                        <span className="font-mono text-muted-foreground">
+                          {new Date(entry.createdAt).toLocaleString("zh-CN")}
+                        </span>
+                        <span className="text-muted-foreground">· {entry.source}</span>
+                      </div>
+                      <p className="mt-1.5 leading-relaxed text-foreground/90">
+                        {entry.contentPreview || "—"}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             <div className="space-y-4">
