@@ -154,6 +154,48 @@ export type ApiOverviewStats = {
   pendingReviewCount: number;
 };
 
+export type ApiTokenDailyRow = {
+  date: string;
+  input: number;
+  output: number;
+  total: number;
+  cost: number;
+};
+
+export type ApiTokenUserRow = {
+  userId: string;
+  displayName: string;
+  orgTitle: string;
+  role: string;
+  totalTokens: number;
+  conversations: number;
+  avgPerConv: number;
+  lastActive: string;
+};
+
+export type ApiTokenRoleGroupRow = {
+  label: string;
+  totalTokens: number;
+  conversations: number;
+};
+
+export type ApiTokenUsageStats = {
+  periodDays: number;
+  monthTotalTokens: number;
+  monthEstimatedCost: number;
+  meteredEventCount: number;
+  estimatedEventCount: number;
+  daily: ApiTokenDailyRow[];
+  byUser: ApiTokenUserRow[];
+  byRoleGroup: ApiTokenRoleGroupRow[];
+};
+
+export type ApiProjectCognition = {
+  summary: string;
+  generatedAt: string;
+  model: string | null;
+};
+
 export type BootstrapPayload = {
   ok: boolean;
   syncedAt: string;
@@ -163,6 +205,8 @@ export type BootstrapPayload = {
   projectDocuments: Record<string, ApiProjectDocuments>;
   auditByConversation: Record<string, ApiAuditEntry[]>;
   overview: ApiOverviewStats;
+  tokenUsage?: ApiTokenUsageStats;
+  projectCognition?: Record<string, ApiProjectCognition>;
   counts: {
     projects: number;
     users: number;
@@ -183,6 +227,52 @@ export async function fetchAdminBootstrap(): Promise<BootstrapPayload> {
   const data = await parseJson<BootstrapPayload & { error?: string }>(res);
   if (!res.ok) {
     throw new ApiError(data.error || "加载数据失败", res.status);
+  }
+  return data;
+}
+
+export type ProjectCognitionPayload = {
+  ok: boolean;
+  projectId: string;
+  cached: boolean;
+  summary: string | null;
+  generatedAt?: string;
+  model?: string | null;
+  error?: string;
+};
+
+export async function fetchProjectCognition(
+  projectId: string,
+): Promise<ProjectCognitionPayload> {
+  const res = await fetch(
+    `${JFO_API_BASE}/api/admin/projects/${encodeURIComponent(projectId)}/cognition`,
+    { headers: authHeaders() },
+  );
+  if (res.status === 401) {
+    clearAdminSession();
+    throw new ApiError("登录已过期，请重新登录", 401);
+  }
+  const data = await parseJson<ProjectCognitionPayload>(res);
+  if (!res.ok) {
+    throw new ApiError(data.error || "加载认知摘要失败", res.status);
+  }
+  return data;
+}
+
+export async function generateProjectCognition(
+  projectId: string,
+): Promise<ProjectCognitionPayload> {
+  const res = await fetch(
+    `${JFO_API_BASE}/api/admin/projects/${encodeURIComponent(projectId)}/cognition`,
+    { method: "POST", headers: authHeaders() },
+  );
+  if (res.status === 401) {
+    clearAdminSession();
+    throw new ApiError("登录已过期，请重新登录", 401);
+  }
+  const data = await parseJson<ProjectCognitionPayload>(res);
+  if (!res.ok) {
+    throw new ApiError(data.error || "生成认知摘要失败", res.status);
   }
   return data;
 }

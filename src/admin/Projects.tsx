@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Bot,
   Briefcase,
@@ -20,6 +20,7 @@ import {
 import type { WorkspaceProject } from "@/data/platform";
 import { useAdminData } from "@/context/AdminDataContext";
 import type { ApiProjectDocuments } from "@/lib/api-client";
+import { generateProjectCognition } from "@/lib/api-client";
 import {
   PROJECT_OVERVIEW_METRICS_BY_ID,
   type ProjectRiskLevel,
@@ -82,26 +83,77 @@ function DocumentRow({
 }
 
 function AgentCognitionPanel({ project }: { project: WorkspaceProject }) {
+  const { projectCognition, updateProjectCognition } = useAdminData();
+  const cached = projectCognition[project.id];
+  const [summary, setSummary] = useState<string | null>(cached?.summary ?? null);
+  const [generatedAt, setGeneratedAt] = useState<string | null>(
+    cached?.generatedAt ?? null,
+  );
+  const [model, setModel] = useState<string | null>(cached?.model ?? null);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const entry = projectCognition[project.id];
+    setSummary(entry?.summary ?? null);
+    setGeneratedAt(entry?.generatedAt ?? null);
+    setModel(entry?.model ?? null);
+  }, [project.id, projectCognition]);
+
+  const handleRegenerate = async () => {
+    setGenerating(true);
+    setError(null);
+    try {
+      const result = await generateProjectCognition(project.id);
+      if (!result.summary) {
+        setError("模型未返回摘要");
+        return;
+      }
+      setSummary(result.summary);
+      setGeneratedAt(result.generatedAt ?? new Date().toISOString());
+      setModel(result.model ?? null);
+      updateProjectCognition(project.id, {
+        summary: result.summary,
+        generatedAt: result.generatedAt ?? new Date().toISOString(),
+        model: result.model ?? null,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "生成失败");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   return (
     <div className="rounded-lg border border-border/70 p-4">
       <h4 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-foreground">
         <Bot className="h-4 w-4 text-primary" />
         Agent 认知摘要
       </h4>
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        「{project.name}」当前阶段为 {project.phase}，赛道为 {project.category}
-        。对访客与内部用户展示的颗粒度不同：访客侧以
-        {project.guestSummary.length > 48
-          ? `${project.guestSummary.slice(0, 48)}…`
-          : project.guestSummary}
-        为摘要；内部侧可结合项目资料包与对话附件展开业务与合规细节。
-      </p>
+      {summary ? (
+        <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+          {summary}
+        </p>
+      ) : (
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          尚未生成认知摘要。点击下方按钮，将结合项目资料与近期对话由 AI 生成管理视角摘要。
+        </p>
+      )}
+      {(generatedAt || model) && (
+        <p className="mt-2 text-[11px] text-muted-foreground/80">
+          {generatedAt && `生成于 ${generatedAt.slice(0, 19).replace("T", " ")}`}
+          {model ? ` · ${model}` : ""}
+        </p>
+      )}
+      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
       <button
         type="button"
-        className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80"
+        disabled={generating}
+        onClick={() => void handleRegenerate()}
+        className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 disabled:opacity-50"
       >
-        <RefreshCw className="h-3 w-3" />
-        重新生成认知
+        <RefreshCw className={cn("h-3 w-3", generating && "animate-spin")} />
+        {generating ? "生成中…" : summary ? "重新生成认知" : "生成认知摘要"}
       </button>
     </div>
   );

@@ -13,7 +13,9 @@ import {
   type ApiConversation,
   type ApiOverviewStats,
   type ApiProject,
+  type ApiProjectCognition,
   type ApiProjectDocuments,
+  type ApiTokenUsageStats,
   type ApiUser,
 } from "@/lib/api-client";
 import { loadAdminToken } from "@/lib/admin-session";
@@ -33,6 +35,17 @@ const EMPTY_OVERVIEW: ApiOverviewStats = {
   pendingReviewCount: 0,
 };
 
+const EMPTY_TOKEN_USAGE: ApiTokenUsageStats = {
+  periodDays: 30,
+  monthTotalTokens: 0,
+  monthEstimatedCost: 0,
+  meteredEventCount: 0,
+  estimatedEventCount: 0,
+  daily: [],
+  byUser: [],
+  byRoleGroup: [],
+};
+
 type AdminDataContextValue = {
   loading: boolean;
   error: string | null;
@@ -44,7 +57,10 @@ type AdminDataContextValue = {
   projectDocuments: Record<string, ApiProjectDocuments>;
   auditByConversation: Record<string, ApiAuditEntry[]>;
   overview: ApiOverviewStats;
+  tokenUsage: ApiTokenUsageStats;
+  projectCognition: Record<string, ApiProjectCognition>;
   refresh: () => Promise<void>;
+  updateProjectCognition: (projectId: string, entry: ApiProjectCognition) => void;
 };
 
 const AdminDataContext = createContext<AdminDataContextValue | null>(null);
@@ -115,6 +131,17 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
     Record<string, ApiAuditEntry[]>
   >({});
   const [overview, setOverview] = useState<ApiOverviewStats>(EMPTY_OVERVIEW);
+  const [tokenUsage, setTokenUsage] = useState<ApiTokenUsageStats>(EMPTY_TOKEN_USAGE);
+  const [projectCognition, setProjectCognition] = useState<
+    Record<string, ApiProjectCognition>
+  >({});
+
+  const updateProjectCognition = useCallback(
+    (projectId: string, entry: ApiProjectCognition) => {
+      setProjectCognition((prev) => ({ ...prev, [projectId]: entry }));
+    },
+    [],
+  );
 
   const refresh = useCallback(async () => {
     if (!loadAdminToken()) return;
@@ -130,6 +157,8 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
       setProjectDocuments(data.projectDocuments ?? {});
       setAuditByConversation(data.auditByConversation ?? {});
       setOverview(data.overview ?? EMPTY_OVERVIEW);
+      setTokenUsage(data.tokenUsage ?? EMPTY_TOKEN_USAGE);
+      setProjectCognition(data.projectCognition ?? {});
     } catch (err) {
       setError(err instanceof Error ? err.message : "加载失败");
     } finally {
@@ -153,7 +182,10 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
       projectDocuments,
       auditByConversation,
       overview,
+      tokenUsage,
+      projectCognition,
       refresh,
+      updateProjectCognition,
     }),
     [
       loading,
@@ -166,7 +198,10 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
       projectDocuments,
       auditByConversation,
       overview,
+      tokenUsage,
+      projectCognition,
       refresh,
+      updateProjectCognition,
     ],
   );
 

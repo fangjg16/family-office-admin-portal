@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { useAdminData } from "@/context/AdminDataContext";
 import { ActiveUsersLineChart, TokenAreaChart } from "@/admin/charts";
-import { buildActiveUserDailyData, buildTokenDailyData } from "@/admin/mockToken";
+import { buildActiveUserDailyData } from "@/admin/mockToken";
 import { cn } from "@/lib/utils";
 
 const ACTIVE_TREND_DAYS = 14;
@@ -171,13 +171,15 @@ function ChartCard({
 }
 
 export function OverviewPage() {
-  const { overview } = useAdminData();
-  const tokenDailyData = buildTokenDailyData(30);
+  const { overview, tokenUsage } = useAdminData();
+  const tokenDailyData = tokenUsage.daily.slice(-30);
   const activeUserDaily = buildActiveUserDailyData(ACTIVE_TREND_DAYS);
 
-  const monthTokenM = (
-    tokenDailyData.reduce((s, d) => s + d.total, 0) / 1_000_000
-  ).toFixed(2);
+  const monthTokens =
+    tokenUsage.monthTotalTokens > 0
+      ? tokenUsage.monthTotalTokens
+      : tokenDailyData.reduce((s, d) => s + d.total, 0);
+  const monthTokenM = (monthTokens / 1_000_000).toFixed(2);
 
   const phase = overview.projectsByPhase;
 
