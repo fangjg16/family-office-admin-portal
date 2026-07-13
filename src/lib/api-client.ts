@@ -356,6 +356,67 @@ export async function fetchProjectCognition(
   return data;
 }
 
+export type ApiUserProjectPermission = {
+  projectId: string;
+  projectName: string;
+  accessLabel: string;
+  effectiveRole: "admin" | "core" | "mid" | "low" | "guest";
+  overrideRole: "admin" | "core" | "mid" | "low" | "guest" | null;
+  defaultRole: "admin" | "core" | "mid" | "low" | "guest";
+  isCreator: boolean;
+  canEdit: boolean;
+};
+
+export type AdminUserPermissionsPayload = {
+  ok: boolean;
+  userId: string;
+  displayName: string;
+  isPlatformAdmin: boolean;
+  projects: ApiUserProjectPermission[];
+  error?: string;
+};
+
+export async function fetchAdminUserPermissions(
+  userId: string,
+): Promise<AdminUserPermissionsPayload> {
+  const res = await fetch(
+    `${JFO_API_BASE}/api/admin/users/${encodeURIComponent(userId)}/permissions`,
+    { headers: authHeaders() },
+  );
+  if (res.status === 401) {
+    clearAdminSession();
+    throw new ApiError("登录已过期，请重新登录", 401);
+  }
+  const data = await parseJson<AdminUserPermissionsPayload>(res);
+  if (!res.ok) {
+    throw new ApiError(data.error || "加载权限失败", res.status);
+  }
+  return data;
+}
+
+export async function updateAdminUserPermissions(
+  userId: string,
+  updates: { projectId: string; role: "guest" | "low" | "mid" | "core" }[],
+): Promise<AdminUserPermissionsPayload> {
+  const res = await fetch(
+    `${JFO_API_BASE}/api/admin/users/${encodeURIComponent(userId)}/permissions`,
+    {
+      method: "PUT",
+      headers: authHeaders(),
+      body: JSON.stringify({ updates }),
+    },
+  );
+  if (res.status === 401) {
+    clearAdminSession();
+    throw new ApiError("登录已过期，请重新登录", 401);
+  }
+  const data = await parseJson<AdminUserPermissionsPayload>(res);
+  if (!res.ok) {
+    throw new ApiError(data.error || "保存权限失败", res.status);
+  }
+  return data;
+}
+
 export async function generateProjectCognition(
   projectId: string,
 ): Promise<ProjectCognitionPayload> {

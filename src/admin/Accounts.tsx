@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Download,
   Eye,
+  Loader2,
   Lock,
   Pencil,
   Plus,
@@ -11,11 +12,21 @@ import {
 } from "lucide-react";
 import {
   permissionTableCell,
+  projectAccessDisplayLabel,
+  roleLabelForWorkspaceRole,
   type AccountStatus,
+  type WorkspaceRole,
   type WorkspaceUser,
 } from "@/data/platform";
 import { useAdminData } from "@/context/AdminDataContext";
+import {
+  fetchAdminUserPermissions,
+  updateAdminUserPermissions,
+  type ApiUserProjectPermission,
+} from "@/lib/api-client";
 import { cn } from "@/lib/utils";
+
+const ASSIGNABLE: WorkspaceRole[] = ["guest", "low", "mid", "core"];
 
 const AVATAR_RING: Record<string, string> = {
   "candice-guo": "from-[hsl(var(--wine-deep))] to-[hsl(var(--wine-mid))]",
@@ -32,14 +43,258 @@ function statusBadgeClass(s: AccountStatus) {
   return "bg-[hsl(var(--terracotta)/0.12)] text-[hsl(18_28%_32%)] ring-[hsl(var(--terracotta)/0.35)]";
 }
 
+function editableRoleForRow(row: ApiUserProjectPermission): WorkspaceRole {
+  if (row.isCreator) return "core";
+  if (row.effectiveRole === "admin") return "admin";
+  return row.overrideRole ?? row.effectiveRole;
+}
+
+function EditPermissionsModal({
+  user,
+  onClose,
+  onSaved,
+}: {
+  user: WorkspaceUser;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [rows, setRows] = useState<ApiUserProjectPermission[] | null>(null);
+  const [draft, setDraft] = useState<Record<string, WorkspaceRole>>({});
+  const [initial, setInitial] = useState<Record<string, WorkspaceRole>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [savedHint, setSavedHint] = useState<string | null>(null);
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchAdminUserPermissions(user.id);
+      setIsPlatformAdmin(data.isPlatformAdmin);
+      setRows(data.projects);
+      const next: Record<string, WorkspaceRole> = {};
+      for (const row of data.projects) {
+        next[row.projectId] = editableRoleForRow(row);
+      }
+      setDraft(next);
+      setInitial(next);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setRows(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [user.id]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !saving) onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose, saving]);
+
+  const dirty = useMemo(() => {
+    if (!rows) return false;
+    return rows.some((row) => {
+      if (!row.canEdit || row.isCreator || isPlatformAdmin) return false;
+      return (draft[row.projectId] ?? initial[row.projectId]) !== initial[row.projectId];
+    });
+  }, [rows, draft, initial, isPlatformAdmin]);
+
+  const onSave = async () => {
+    if (!rows || !dirty) return;
+    setSaving(true);
+    setError(null);
+    setSavedHint(null);
+    try {
+      const updates = rows
+        .filter((row) => row.canEdit && !row.isCreator && !isPlatformAdmin)
+        .filter((row) => (draft[row.projectId] ?? initial[row.projectId]) !== initial[row.projectId])
+        .map((row) => ({
+          projectId: row.projectId,
+          role: (draft[row.projectId] ?? initial[row.projectId]) as
+            | "guest"
+            | "low"
+            | "mid"
+            | "core",
+        }));
+      const data = await updateAdminUserPermissions(user.id, updates);
+      const next: Record<string, WorkspaceRole> = {};
+      for (const row of data.projects) {
+        next[row.projectId] = editableRoleForRow(row);
+      }
+      setRows(data.projects);
+      setDraft(next);
+      setInitial(next);
+      setSavedHint("权限已保存");
+      onSaved();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/40 backdrop-blur-[1px]"
+        aria-label="关闭"
+        onClick={() => !saving && onClose()}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-permissions-title"
+        className="relative z-10 flex max-h-[min(90vh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-border/80 bg-white shadow-xl"
+      >
+        <div className="flex items-center justify-between border-b border-border/70 px-5 py-3">
+          <div>
+            <h3
+              id="edit-permissions-title"
+              className="font-display text-base font-semibold text-foreground"
+            >
+              编辑权限
+            </h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {user.displayName} · 按项目设置角色
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-50"
+            aria-label="关闭"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          {isPlatformAdmin ? (
+            <p className="rounded-lg border border-border/70 bg-muted/30 px-3 py-2.5 text-sm text-muted-foreground">
+              平台管理员在各项目中均为 Admin，不可在此修改。
+            </p>
+          ) : null}
+
+          {loading ? (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              加载项目权限…
+            </p>
+          ) : null}
+
+          {error ? (
+            <p className="rounded-lg border border-rose-200/80 bg-rose-50/80 px-3 py-2 text-sm text-rose-700">
+              {error}
+            </p>
+          ) : null}
+
+          {savedHint ? (
+            <p className="text-sm font-medium text-emerald-700">{savedHint}</p>
+          ) : null}
+
+          {rows && !loading && !isPlatformAdmin ? (
+            <ul className="mt-1 space-y-2">
+              {rows.map((row) => {
+                const locked = row.isCreator;
+                const value = locked
+                  ? "core"
+                  : (draft[row.projectId] ?? editableRoleForRow(row));
+                return (
+                  <li
+                    key={row.projectId}
+                    className="flex flex-col gap-2 rounded-lg border border-border/70 bg-muted/10 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground">
+                        {row.projectName}
+                        {row.isCreator ? (
+                          <span className="ml-1.5 text-[10px] font-semibold text-primary">
+                            创建人
+                          </span>
+                        ) : null}
+                      </p>
+                    </div>
+                    <select
+                      value={value}
+                      disabled={locked || saving || !row.canEdit}
+                      onChange={(e) => {
+                        const role = e.target.value as WorkspaceRole;
+                        setDraft((prev) => ({ ...prev, [row.projectId]: role }));
+                        setSavedHint(null);
+                      }}
+                      className={cn(
+                        "w-full shrink-0 rounded-lg border border-border/80 bg-white px-2 py-1.5 text-xs font-medium text-foreground sm:w-40",
+                        (locked || !row.canEdit) && "cursor-not-allowed opacity-70",
+                      )}
+                      aria-label={`${row.projectName} 的项目角色`}
+                    >
+                      {locked ? (
+                        <option value="core">{roleLabelForWorkspaceRole("core")}</option>
+                      ) : (
+                        ASSIGNABLE.map((r) => (
+                          <option key={r} value={r}>
+                            {roleLabelForWorkspaceRole(r)}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
+        </div>
+
+        <div className="flex items-center justify-end gap-2 border-t border-border/70 bg-muted/20 px-5 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-foreground transition hover:bg-muted/60 disabled:opacity-50"
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            disabled={!dirty || saving || loading || isPlatformAdmin}
+            onClick={() => void onSave()}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90",
+              (!dirty || saving || loading || isPlatformAdmin) && "pointer-events-none opacity-50",
+            )}
+          >
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            ) : null}
+            保存
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function UserDetailModal({
   user,
   projectRows,
   onClose,
+  onEditPermissions,
 }: {
   user: WorkspaceUser;
   projectRows: { projectName: string; accessLabel: string }[];
   onClose: () => void;
+  onEditPermissions: () => void;
 }) {
 
   useEffect(() => {
@@ -135,7 +390,7 @@ function UserDetailModal({
                         {row.projectName}
                       </span>
                       <span className="shrink-0 rounded-md bg-muted/90 px-2 py-0.5 text-xs font-semibold tabular-nums text-foreground">
-                        {row.accessLabel}
+                        {projectAccessDisplayLabel(row.accessLabel)}
                       </span>
                     </li>
                   ))}
@@ -148,6 +403,7 @@ function UserDetailModal({
         <div className="flex flex-wrap items-center gap-2 border-t border-border/70 bg-muted/20 px-5 py-4">
           <button
             type="button"
+            onClick={onEditPermissions}
             className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground shadow-sm transition hover:bg-primary/90"
           >
             <Pencil className="h-4 w-4" />
@@ -210,11 +466,18 @@ function AddUserPlaceholderModal({ onClose }: { onClose: () => void }) {
 }
 
 export function AccountsPage() {
-  const { users: workspaceUsers, userProjectAccess, loading } = useAdminData();
+  const { users: workspaceUsers, userProjectAccess, loading, refresh } = useAdminData();
   const [detailUser, setDetailUser] = useState<WorkspaceUser | null>(null);
+  const [editPermissionsUser, setEditPermissionsUser] = useState<WorkspaceUser | null>(
+    null,
+  );
   const [addUserOpen, setAddUserOpen] = useState(false);
   const [query, setQuery] = useState("");
   const closeDetail = useCallback(() => setDetailUser(null), []);
+
+  const onPermissionsSaved = useCallback(() => {
+    void refresh();
+  }, [refresh]);
 
   const filteredUsers = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -398,6 +661,14 @@ export function AccountsPage() {
           user={detailUser}
           projectRows={userProjectAccess[detailUser.id] ?? []}
           onClose={closeDetail}
+          onEditPermissions={() => setEditPermissionsUser(detailUser)}
+        />
+      )}
+      {editPermissionsUser && (
+        <EditPermissionsModal
+          user={editPermissionsUser}
+          onClose={() => setEditPermissionsUser(null)}
+          onSaved={onPermissionsSaved}
         />
       )}
       {addUserOpen && (
