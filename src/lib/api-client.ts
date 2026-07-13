@@ -417,6 +417,42 @@ export async function updateAdminUserPermissions(
   return data;
 }
 
+export async function fetchAdminDocumentBlob(
+  documentId: string,
+  projectId: string,
+  options?: { disposition?: "inline" | "attachment" },
+): Promise<{ blob: Blob; filename: string; mime: string }> {
+  const q = new URLSearchParams({ projectId });
+  if (options?.disposition) q.set("disposition", options.disposition);
+  const res = await fetch(
+    `${JFO_API_BASE}/api/admin/documents/${encodeURIComponent(documentId)}/download?${q}`,
+    { headers: authHeaders() },
+  );
+  if (res.status === 401) {
+    clearAdminSession();
+    throw new ApiError("登录已过期，请重新登录", 401);
+  }
+  if (!res.ok) {
+    const err = await res.text().catch(() => "");
+    let message = err;
+    try {
+      const parsed = JSON.parse(err) as { error?: string };
+      message = parsed.error || err;
+    } catch {
+      /* use raw text */
+    }
+    throw new ApiError(message || "下载文件失败", res.status);
+  }
+  const disposition = res.headers.get("Content-Disposition") ?? "";
+  const filenameMatch = /filename\*?=(?:UTF-8''|")?([^";]+)/iu.exec(disposition);
+  const filename = filenameMatch
+    ? decodeURIComponent(filenameMatch[1].replace(/"/gu, ""))
+    : documentId;
+  const mime = res.headers.get("Content-Type") || "application/octet-stream";
+  const blob = await res.blob();
+  return { blob, filename, mime };
+}
+
 export async function generateProjectCognition(
   projectId: string,
 ): Promise<ProjectCognitionPayload> {
