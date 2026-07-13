@@ -8,6 +8,10 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useAdminData } from "@/context/AdminDataContext";
+import {
+  roleLabelForWorkspaceRole,
+  type WorkspaceRole,
+} from "@/data/platform";
 import { cn } from "@/lib/utils";
 
 type AgentTab = "skills" | "architecture" | "sandbox";
@@ -186,26 +190,37 @@ export function AgentsPage() {
           </section>
 
           <section className="rounded-xl border border-border/80 bg-white/95 p-4 shadow-sm backdrop-blur-sm">
-            <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+            <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold text-foreground">
               <Shield className="h-4 w-4 text-primary" />
-              权限矩阵（只读）
+              项目权限档位
             </h3>
+            <p className="mb-3 text-xs text-muted-foreground">
+              与主平台 workspace-roles 一致；各用户在不同项目上的实际档位可在「账号与权限」中单独配置。
+            </p>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {permissionRules.map((rule) => (
-                <div
-                  key={rule.role}
-                  className="rounded-lg border border-border/70 bg-muted/20 px-3 py-2.5"
-                >
-                  <p className="text-sm font-semibold text-foreground">
-                    {rule.label}
-                  </p>
-                  <ul className="mt-1.5 list-inside list-disc text-xs text-muted-foreground">
-                    {rule.capabilities.map((c) => (
-                      <li key={c}>{c}</li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+              {permissionRules.map((rule) => {
+                const tierLabel = roleLabelForWorkspaceRole(
+                  rule.role as WorkspaceRole,
+                );
+                return (
+                  <div
+                    key={rule.role}
+                    className="rounded-lg border border-border/70 bg-muted/20 px-3 py-2.5"
+                  >
+                    <p className="text-sm font-semibold text-foreground">
+                      {tierLabel}
+                    </p>
+                    <ul className="mt-1.5 space-y-0.5 text-xs leading-relaxed text-muted-foreground">
+                      {rule.capabilities.map((c) => (
+                        <li key={c} className="flex gap-1.5">
+                          <span className="text-border">·</span>
+                          <span>{c}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
             </div>
           </section>
 
